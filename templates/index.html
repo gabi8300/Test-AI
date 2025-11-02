@@ -1,0 +1,95 @@
+<!DOCTYPE html>
+<html lang="ro">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>SmarTest - Generator Întrebări AI</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>🎓 SmarTest</h1>
+            <p>Generator Întrebări pentru Probleme de Căutare AI</p>
+        </div>
+        
+        <div class="content">
+            <!-- Home Screen -->
+            <div id="screen-home">
+                <h2>Bine ai venit!</h2>
+                <div class="menu-grid">
+                    <div class="menu-card" onclick="showGenerate()">
+                        <h3>➕ Generează</h3>
+                        <p>Creează întrebări noi</p>
+                    </div>
+                    <div class="menu-card" onclick="showQuestions()">
+                        <h3>📚 Întrebări</h3>
+                        <p><span id="count">0</span> generate</p>
+                    </div>
+                    <div class="menu-card" onclick="showAnswer()">
+                        <h3>✏️ Răspunde</h3>
+                        <p>Testează-ți cunoștințele</p>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- Generate Screen -->
+            <div id="screen-generate" class="hidden">
+                <button class="btn btn-secondary" onclick="showHome()">⬅️ Înapoi</button>
+                <h2>Generează Întrebare</h2>
+                <div style="margin: 20px 0;">
+                    <button class="type-btn" onclick="generate('n-queens')">👑 N-Queens</button>
+                    <button class="type-btn" onclick="generate('hanoi')">🗼 Hanoi</button>
+                    <button class="type-btn" onclick="generate('coloring')">🎨 Graph Coloring</button>
+                    <button class="type-btn" onclick="generate('knight')">♘ Knight's Tour</button>
+                    <button class="type-btn" onclick="generate('random')">🎲 ALEATORIU</button>
+                </div>
+            </div>
+            
+            <!-- View Question Screen -->
+            <div id="screen-view" class="hidden">
+                <button class="btn btn-secondary" onclick="showQuestions()">⬅️ Înapoi</button>
+                <h2 id="view-title"></h2>
+                <div class="question-box" id="view-question"></div>
+                <button class="btn" onclick="startAnswer()">✏️ Răspunde</button>
+                <button class="btn btn-success" onclick="showCorrect()">👁️ Vezi răspuns</button>
+            </div>
+            
+            <!-- Questions List Screen -->
+            <div id="screen-questions" class="hidden">
+                <button class="btn btn-secondary" onclick="showHome()">⬅️ Înapoi</button>
+                <h2>Întrebări Generate (<span id="total">0</span>)</h2>
+                <div id="questions-list"></div>
+            </div>
+            
+            <!-- Answer Screen -->
+            <div id="screen-answer" class="hidden">
+                <button class="btn btn-secondary" onclick="showHome()">⬅️ Înapoi</button>
+                <h2 id="answer-title"></h2>
+                <div class="question-box" id="answer-question"></div>
+                <textarea id="user-answer" placeholder="Scrie răspunsul tău aici..."></textarea>
+                <div style="text-align: center; margin-top: 20px;">
+                    <button class="btn btn-success" onclick="submitAnswer()">✅ Evaluează</button>
+                </div>
+            </div>
+            
+            <!-- Evaluation Screen -->
+            <div id="screen-eval" class="hidden">
+                <button class="btn btn-secondary" onclick="showHome()">⬅️ Acasă</button>
+                <h2>Evaluare</h2>
+                <div id="score-display"></div>
+                <div class="question-box" style="background: #e7f3ff;">
+                    <strong>Răspuns corect:</strong>
+                    <div id="eval-correct"></div>
+                </div>
+                <div class="question-box" style="background: #f3e5f5;">
+                    <strong>Explicație:</strong>
+                    <div id="eval-explanation"></div>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <script src="{{ url_for('static', filename='js/app.js') }}"></script>
+</body>
+</html>
