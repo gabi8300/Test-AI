@@ -1,7 +1,4 @@
-# utils/__init__.py
-"""
-Pachet pentru utilitare
-"""
 from .evaluator import QuestionEvaluator
+from .question_db_manager import QuestionDBManager
 
-__all__ = ['QuestionEvaluator']
+__all__ = ['QuestionEvaluator', 'QuestionDBManager']
