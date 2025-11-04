@@ -80,7 +80,11 @@ function showAnswer() {
     return;
   }
   hideAll();
-  currentQuestion = questions[0];
+
+  // Pick a random question from the list
+  const randomIndex = Math.floor(Math.random() * questions.length);
+  currentQuestion = questions[randomIndex];
+
   document.getElementById("answer-title").textContent = currentQuestion.title;
   document.getElementById("answer-question").textContent =
     currentQuestion.question;
