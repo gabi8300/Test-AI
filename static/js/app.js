@@ -245,13 +245,14 @@ async function submitAnswer() {
     alert("Te rog scrie un răspuns!");
     return;
   }
-
+  console.log("Submitting evaluation for dbId:", currentQuestion.dbId);
   try {
     const res = await fetch("/api/evaluate", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({
         questionId: currentQuestion.id,
+        dbId: currentQuestion.dbId,
         userAnswer: userAnswer,
       }),
     });

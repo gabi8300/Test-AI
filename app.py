@@ -179,7 +179,7 @@ def api_evaluate():
 
         # Încearcă să găsească întrebarea
         question = None
-
+        print (db_id)
         if db_id:
             # Caută după ID-ul din baza de date
             question = db_manager.get_question_by_db_id(db_id)
