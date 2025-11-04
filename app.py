@@ -1,35 +1,3 @@
-# ===================================================================
-# INSTRUCȚIUNI DE INSTALARE ȘI RULARE
-# ===================================================================
-#
-# 1. Creează structura de foldere:
-#    mkdir -p generators utils static/css static/js templates
-#
-# 2. Instalează dependențele:
-#    pip install flask flask-cors psycopg2-binary
-#
-# 3. Configurează PostgreSQL:
-#    - Rulează schema.sql pentru a crea baza de date
-#    - Actualizează DB_CONFIG mai jos cu datele tale
-#
-# 4. Salvează toate fișierele în locațiile corespunzătoare:
-#    - app.py (acesta)
-#    - generators/question_generator.py
-#    - generators/__init__.py
-#    - utils/evaluator.py
-#    - utils/__init__.py
-#    - utils/db_manager.py (NOU!)
-#    - templates/index.html
-#    - static/css/style.css
-#    - static/js/app.js
-#
-# 5. Rulează aplicația:
-#    python app.py
-#
-# 6. Deschide în browser:
-#    http://localhost:5000
-#
-# ===================================================================
 
 from flask import Flask, jsonify, request, render_template
 from flask_cors import CORS
@@ -40,22 +8,18 @@ from utils.question_db_manager import QuestionDBManager
 app = Flask(__name__)
 CORS(app)
 
-# ============= CONFIGURARE BAZĂ DE DATE =============
 DB_CONFIG = {
     'host': 'localhost',
-    'database': 'Proiect_AI',
+    'database': 'smartestDB',
     'user': 'postgres',
-    'password': '1234',
-    'port': 5432
+    'password': '12345',
+    'port': 5433
 }
 
-# ============= INIȚIALIZARE COMPONENTE =============
 generator = QuestionGenerator()
 evaluator = QuestionEvaluator()
 db_manager = QuestionDBManager(DB_CONFIG)
 
-
-# ============= RUTE API =============
 
 @app.route('/')
 def home():

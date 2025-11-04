@@ -1,9 +1,3 @@
--- Creare bază de date
-CREATE DATABASE ai_questions_db;
-
--- Conectare la baza de date
-\c ai_questions_db;
-
 -- Tabel pentru întrebări
 CREATE TABLE questions (
     id SERIAL PRIMARY KEY,

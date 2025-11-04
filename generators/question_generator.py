@@ -29,7 +29,7 @@ class QuestionGenerator:
     def _generate_nqueens(self):
         """Generează întrebare N-Queens"""
         self.question_counter += 1
-        n = random.choice([4, 5, 6, 8, 10, 12])
+        n = random.randint(4, 15)
         
         return {
             'id': self.question_counter,
@@ -56,8 +56,8 @@ Alternative: {"Forward Checking, MRV" if n <= 8 else "AC-3, Minimum Conflicts"}'
     def _generate_hanoi(self):
         """Generează întrebare Hanoi"""
         self.question_counter += 1
-        n_disks = random.choice([3, 4, 5, 6])
-        n_pegs = random.choice([3, 4, 5])
+        n_disks = random.randint(3, 8)
+        n_pegs = random.randint(3, 6)
         
         return {
             'id': self.question_counter,

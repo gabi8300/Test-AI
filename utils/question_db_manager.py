@@ -15,8 +15,6 @@ class QuestionDBManager:
         """
         Inițializare cu configurația bazei de date
 
-        Args:
-            db_config: dict cu 'host', 'database', 'user', 'password', 'port'
         """
         self.db_config = db_config
 
@@ -40,11 +38,6 @@ class QuestionDBManager:
         """
         Salvează o întrebare în baza de date
 
-        Args:
-            question_data: dict cu datele întrebării generate de QuestionGenerator
-
-        Returns:
-            int: ID-ul întrebării salvate în baza de date
         """
         with self.get_connection() as conn:
             with conn.cursor() as cursor:
@@ -75,9 +68,6 @@ class QuestionDBManager:
         """
         Actualizează statisticile pentru tipul de întrebare
 
-        Args:
-            cursor: cursor-ul bazei de date
-            question_type: tipul întrebării
         """
         query = """
             INSERT INTO question_stats (question_type, total_generated, last_generated)
@@ -93,11 +83,6 @@ class QuestionDBManager:
         """
         Recuperează o întrebare după ID-ul din baza de date
 
-        Args:
-            db_id: ID-ul întrebării în baza de date
-
-        Returns:
-            dict: Întrebarea sau None dacă nu există
         """
         with self.get_connection() as conn:
             with conn.cursor(cursor_factory=RealDictCursor) as cursor:
@@ -109,12 +94,6 @@ class QuestionDBManager:
         """
         Recuperează întrebările după tip
 
-        Args:
-            question_type: tipul întrebării
-            limit: număr maxim de întrebări
-
-        Returns:
-            list: Lista de întrebări
         """
         with self.get_connection() as conn:
             with conn.cursor(cursor_factory=RealDictCursor) as cursor:
@@ -131,12 +110,6 @@ class QuestionDBManager:
         """
         Recuperează toate întrebările cu paginare
 
-        Args:
-            limit: număr maxim de întrebări
-            offset: offset pentru paginare
-
-        Returns:
-            list: Lista de întrebări
         """
         with self.get_connection() as conn:
             with conn.cursor(cursor_factory=RealDictCursor) as cursor:
@@ -152,8 +125,6 @@ class QuestionDBManager:
         """
         Recuperează statisticile despre întrebări
 
-        Returns:
-            list: Lista cu statistici per tip
         """
         with self.get_connection() as conn:
             with conn.cursor(cursor_factory=RealDictCursor) as cursor:
@@ -165,12 +136,6 @@ class QuestionDBManager:
         """
         Caută întrebări după termen (în titlu sau conținut)
 
-        Args:
-            search_term: termenul de căutare
-            limit: număr maxim de rezultate
-
-        Returns:
-            list: Lista de întrebări găsite
         """
         with self.get_connection() as conn:
             with conn.cursor(cursor_factory=RealDictCursor) as cursor:
@@ -188,11 +153,6 @@ class QuestionDBManager:
         """
         Șterge o întrebare din baza de date
 
-        Args:
-            db_id: ID-ul întrebării în baza de date
-
-        Returns:
-            bool: True dacă ștergerea a avut succes
         """
         with self.get_connection() as conn:
             with conn.cursor() as cursor:
@@ -220,8 +180,6 @@ class QuestionDBManager:
         """
         Returnează numărul de întrebări per tip
 
-        Returns:
-            list: Lista cu count-uri per tip
         """
         with self.get_connection() as conn:
             with conn.cursor(cursor_factory=RealDictCursor) as cursor:
@@ -238,8 +196,6 @@ class QuestionDBManager:
         """
         Returnează numărul total de întrebări
 
-        Returns:
-            int: Numărul total de întrebări
         """
         with self.get_connection() as conn:
             with conn.cursor() as cursor:
@@ -250,8 +206,6 @@ class QuestionDBManager:
         """
         Șterge toate întrebările (ATENȚIE: operație periculoasă!)
 
-        Returns:
-            int: Numărul de întrebări șterse
         """
         with self.get_connection() as conn:
             with conn.cursor() as cursor:

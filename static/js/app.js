@@ -1,15 +1,7 @@
-/**
- * SmarTest - Application Logic
- * ===================================================================
- */
 
 // State Management
 let questions = [];
 let currentQuestion = null;
-
-// ===================================================================
-// INITIALIZATION
-// ===================================================================
 
 /**
  * Încarcă întrebările de pe server
@@ -31,10 +23,6 @@ function updateQuestionCount() {
   document.getElementById("count").textContent = questions.length;
   document.getElementById("total").textContent = questions.length;
 }
-
-// ===================================================================
-// NAVIGATION
-// ===================================================================
 
 /**
  * Ascunde toate ecranele
@@ -91,9 +79,6 @@ function showAnswer() {
   document.getElementById("screen-answer").classList.remove("hidden");
 }
 
-// ===================================================================
-// QUESTION GENERATION
-// ===================================================================
 /**
  * Generează o nouă întrebare (sau mai multe)
  * @param {string} type - Tipul întrebării
@@ -155,10 +140,6 @@ async function generate(type) {
   }
 }
 
-// ===================================================================
-// QUESTION DISPLAY
-// ===================================================================
-
 /**
  * Afișează o întrebare specifică
  * @param {Object} q - Obiectul întrebare
@@ -209,10 +190,6 @@ function escapeHtml(text) {
   div.textContent = text;
   return div.innerHTML;
 }
-
-// ===================================================================
-// ANSWER HANDLING
-// ===================================================================
 
 /**
  * Inițiază procesul de răspuns
@@ -269,10 +246,6 @@ async function submitAnswer() {
   }
 }
 
-// ===================================================================
-// EVALUATION DISPLAY
-// ===================================================================
-
 /**
  * Afișează rezultatul evaluării
  * @param {Object} result - Rezultatul evaluării
@@ -305,10 +278,6 @@ function getScoreClass(score) {
   if (score >= 50) return "score-fair";
   return "score-poor";
 }
-
-// ===================================================================
-// INITIALIZATION ON LOAD
-// ===================================================================
 
 // Încarcă întrebările când pagina este gata
 document.addEventListener("DOMContentLoaded", () => {
