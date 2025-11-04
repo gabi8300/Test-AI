@@ -43,10 +43,10 @@ CORS(app)
 # ============= CONFIGURARE BAZĂ DE DATE =============
 DB_CONFIG = {
     'host': 'localhost',
-    'database': 'smartestDB',
+    'database': 'Proiect_AI',
     'user': 'postgres',
-    'password': '12345',
-    'port': 5433
+    'password': '1234',
+    'port': 5432
 }
 
 # ============= INIȚIALIZARE COMPONENTE =============
@@ -61,7 +61,34 @@ db_manager = QuestionDBManager(DB_CONFIG)
 def home():
     """Pagina principală"""
     return render_template('index.html')
+@app.route('/api/batch-generate', methods=['POST'])
+def api_batch_generate():
+    """Generează un lot de întrebări și salvează în baza de date"""
+    try:
+        data = request.json
+        q_type = data.get('type', 'random')
+        # Get 'count' from the request, default to 1 if not provided
+        count = data.get('count', 1)
+        
+        generated_questions = []
 
+        for _ in range(count):
+            # Generează întrebare
+            question = generator.generate_question(q_type)
+
+            # Salvează în baza de date
+            db_id = db_manager.save_question(question)
+
+            # Adaugă ID-ul din baza de date la răspuns
+            question['dbId'] = db_id
+            generated_questions.append(question)
+
+        # Return the list of newly created questions
+        return jsonify(generated_questions)
+
+    except Exception as e:
+        app.logger.error(f"Eroare la generare batch: {e}")
+        return jsonify({'error': str(e)}), 500
 
 @app.route('/api/generate', methods=['POST'])
 def api_generate():
