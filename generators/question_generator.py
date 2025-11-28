@@ -71,8 +71,8 @@ Alternative: {"Forward Checking, MRV" if n <= 8 else "AC-3, Minimum Conflicts"}'
 - Un disc mai mare nu poate fi peste unul mai mic
 
 Care este cea mai potrivită strategie?''',
-            'correctAnswer': 'Algoritm recursiv (DFS)' if n_pegs == 3 else 'BFS pentru soluție optimă',
-            'explanation': f'''Răspuns: {"Algoritm recursiv (DFS)" if n_pegs == 3 else "BFS pentru soluție optimă"}
+            'correctAnswer': 'Algoritm recursiv (DFS)' if n_pegs == 3 else 'BFS',
+            'explanation': f'''Răspuns: {"Algoritm recursiv (DFS)" if n_pegs == 3 else "BFS"}
 
 Justificare:
 - {"Hanoi clasic (3 tije) are formulă optimă: 2^n - 1" if n_pegs == 3 else f"Hanoi cu {n_pegs} tije NU are formulă optimă"}

@@ -85,11 +85,16 @@ function showAnswer() {
  */
 async function generate(type) {
   // 1. Ask user for the number of questions
-  const countInput = prompt("How many questions do you want to generate?", "5");
+  const countInput = prompt("How many questions do you want to generate? (max 10)" , "1");
   const count = parseInt(countInput, 10);
 
   // 2. Stop if user cancels or enters an invalid number
   if (isNaN(count) || count <= 0) {
+    return;
+  }
+    // 3. Limit to maximum 10 questions
+  if (count > 10) {
+    alert("Maximum 10 questions can be generated at once!");
     return;
   }
 
@@ -208,12 +213,15 @@ function startAnswer() {
  */
 function showCorrect() {
   hideAll();
-  displayEvaluation({
-    score: 100,
-    feedback: "Răspuns Corect",
-    correctAnswer: currentQuestion.correctAnswer,
-    explanation: currentQuestion.explanation,
-  });
+  
+  // Ascunde score-display complet
+  document.getElementById("score-display").style.display = 'none';
+  
+  // Afișează răspunsul corect și explicația
+  document.getElementById("eval-correct").textContent = currentQuestion.correctAnswer;
+  document.getElementById("eval-explanation").textContent = currentQuestion.explanation;
+  
+  document.getElementById("screen-eval").classList.remove("hidden");
 }
 
 /**
@@ -246,16 +254,15 @@ async function submitAnswer() {
   }
 }
 
-/**
- * Afișează rezultatul evaluării
- * @param {Object} result - Rezultatul evaluării
- */
 function displayEvaluation(result) {
   hideAll();
 
   const scoreClass = getScoreClass(result.score);
 
-  document.getElementById("score-display").innerHTML = `
+  // Afișează score-display pentru evaluări normale
+  const scoreDisplay = document.getElementById("score-display");
+  scoreDisplay.style.display = 'block';
+  scoreDisplay.innerHTML = `
         <div class="score-box ${scoreClass}">
             <div style="font-size: 3em; font-weight: bold;">${result.score}%</div>
             <div style="font-size: 1.5em;">${result.feedback}</div>
