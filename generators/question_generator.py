@@ -1,47 +1,50 @@
 """
-Generator de întrebări pentru diferite tipuri de probleme AI
+Generator de întrebări - generează universul complet de întrebări posibile
 """
 import random
 
-
 class QuestionGenerator:
-    """Clasă responsabilă pentru generarea întrebărilor"""
+    """Clasă care generează toate combinațiile posibile de întrebări"""
     
     def __init__(self):
         self.question_counter = 0
-        self.generators = {
-            'n-queens': self._generate_nqueens,
-            'hanoi': self._generate_hanoi,
-            'coloring': self._generate_coloring,
-            'knight': self._generate_knight
-        }
-    
+
+    def get_all_questions(self):
+        """Returnează lista completă a tuturor întrebărilor posibile"""
+        questions = []
+        self.question_counter = 0  # Resetăm contorul
+        
+        questions.extend(self._get_all_nqueens())
+        questions.extend(self._get_all_hanoi())
+        questions.extend(self._get_all_coloring())
+        questions.extend(self._get_all_knight())
+        
+        return questions
+
     def generate_question(self, q_type='random'):
-        """Generează o întrebare de tipul specificat"""
-        if q_type == 'random':
-            q_type = random.choice(list(self.generators.keys()))
-        
-        if q_type not in self.generators:
-            raise ValueError(f"Tip întrebare invalid: {q_type}")
-        
-        return self.generators[q_type]()
+        """Păstrăm metoda pentru compatibilitate, dar alege din lista completă"""
+        all_q = self.get_all_questions()
+        if q_type != 'random':
+            all_q = [q for q in all_q if q['type'] == q_type]
+        return random.choice(all_q)
     
-    def _generate_nqueens(self):
-        """Generează întrebare N-Queens"""
-        self.question_counter += 1
-        n = random.randint(4, 15)
-        
-        return {
-            'id': self.question_counter,
-            'type': 'n-queens',
-            'title': f'N-Queens (n={n})',
-            'question': f'''Pentru problema N-Queens cu n={n}:
+    def _get_all_nqueens(self):
+        """Generează toate variantele N-Queens (n=4..15)"""
+        qs = []
+        # N de la 4 la 15
+        for n in range(4, 16):
+            self.question_counter += 1
+            qs.append({
+                'id': self.question_counter,
+                'type': 'n-queens',
+                'title': f'N-Queens (n={n})',
+                'question': f'''Pentru problema N-Queens cu n={n}:
 
 Trebuie să plasați {n} regine pe o tablă de șah {n}x{n} astfel încât nicio regină să nu se atace reciproc.
 
 Care este cea mai potrivită strategie de rezolvare? Justificați alegerea.''',
-            'correctAnswer': 'Backtracking cu DFS' if n <= 8 else 'Backtracking cu Forward Checking și MRV',
-            'explanation': f'''Răspuns: {"Backtracking cu DFS" if n <= 8 else "Backtracking cu Forward Checking și MRV"}
+                'correctAnswer': 'Backtracking cu DFS' if n <= 8 else 'Backtracking cu Forward Checking și MRV',
+                'explanation': f'''Răspuns: {"Backtracking cu DFS" if n <= 8 else "Backtracking cu Forward Checking și MRV"}
 
 Justificare:
 - Spațiu de stări: {n}^{n} = {n**n} posibilități
@@ -51,19 +54,20 @@ Justificare:
 - Backtracking permite abandon rapid (pruning)
 
 Alternative: {"Forward Checking, MRV" if n <= 8 else "AC-3, Minimum Conflicts"}'''
-        }
+            })
+        return qs
     
-    def _generate_hanoi(self):
-        """Generează întrebare Hanoi"""
-        self.question_counter += 1
-        n_disks = random.randint(3, 8)
-        n_pegs = random.randint(3, 6)
-        
-        return {
-            'id': self.question_counter,
-            'type': 'hanoi',
-            'title': f'Hanoi ({n_disks} discuri, {n_pegs} tije)',
-            'question': f'''Pentru problema Hanoi Generalizată:
+    def _get_all_hanoi(self):
+        """Generează toate variantele Hanoi (discuri 3-8, tije 3-6)"""
+        qs = []
+        for n_disks in range(3, 9):
+            for n_pegs in range(3, 7):
+                self.question_counter += 1
+                qs.append({
+                    'id': self.question_counter,
+                    'type': 'hanoi',
+                    'title': f'Hanoi ({n_disks} discuri, {n_pegs} tije)',
+                    'question': f'''Pentru problema Hanoi Generalizată:
 
 - {n_disks} discuri de dimensiuni diferite
 - {n_pegs} tije disponibile
@@ -71,8 +75,8 @@ Alternative: {"Forward Checking, MRV" if n <= 8 else "AC-3, Minimum Conflicts"}'
 - Un disc mai mare nu poate fi peste unul mai mic
 
 Care este cea mai potrivită strategie?''',
-            'correctAnswer': 'Algoritm recursiv (DFS)' if n_pegs == 3 else 'BFS',
-            'explanation': f'''Răspuns: {"Algoritm recursiv (DFS)" if n_pegs == 3 else "BFS"}
+                    'correctAnswer': 'Algoritm recursiv (DFS)' if n_pegs == 3 else 'BFS',
+                    'explanation': f'''Răspuns: {"Algoritm recursiv (DFS)" if n_pegs == 3 else "BFS"}
 
 Justificare:
 - {"Hanoi clasic (3 tije) are formulă optimă: 2^n - 1" if n_pegs == 3 else f"Hanoi cu {n_pegs} tije NU are formulă optimă"}
@@ -81,36 +85,44 @@ Justificare:
 - {"Complexitate: O(2^n)" if n_pegs == 3 else "Complexitate: O(k^n)"}
 
 Alternative: {"IDS pentru memorie limitată" if n_pegs == 3 else "IDS (Iterative Deepening Search)"}'''
-        }
+                })
+        return qs
     
-    def _generate_coloring(self):
-        """Generează întrebare Graph Coloring"""
-        self.question_counter += 1
-        n_nodes = random.choice([5, 6, 7, 8, 10])
-        n_colors = random.choice([3, 4, 5])
-        density = random.choice(['sparse', 'dense', 'moderate'])
-        
-        edges = {
-            'sparse': n_nodes + 2,
-            'moderate': n_nodes * 2,
-            'dense': n_nodes * (n_nodes - 1) // 3
-        }[density]
-        
-        is_easy = density == 'sparse' or n_colors >= 4
-        
-        return {
-            'id': self.question_counter,
-            'type': 'coloring',
-            'title': f'Graph Coloring ({n_nodes} noduri, {density})',
-            'question': f'''Pentru problema Graph Coloring:
+    def _get_all_coloring(self):
+        """Generează toate variantele Graph Coloring"""
+        qs = []
+        # Combinăm toți parametrii
+        nodes_opts = [5, 6, 7, 8, 10]
+        colors_opts = [3, 4, 5]
+        density_opts = ['sparse', 'dense', 'moderate']
+
+        for n_nodes in nodes_opts:
+            for density in density_opts:
+                for n_colors in colors_opts:
+                    self.question_counter += 1
+                    
+                    edges = {
+                        'sparse': n_nodes + 2,
+                        'moderate': n_nodes * 2,
+                        'dense': n_nodes * (n_nodes - 1) // 3
+                    }[density]
+                    
+                    is_easy = density == 'sparse' or n_colors >= 4
+                    
+                    qs.append({
+                        'id': self.question_counter,
+                        'type': 'coloring',
+                        # Actualizat titlul pentru unicitate
+                        'title': f'Graph Coloring ({n_nodes} noduri, {density}, {n_colors} culori)',
+                        'question': f'''Pentru problema Graph Coloring:
 
 - Graf cu {n_nodes} noduri și {edges} muchii ({density})
 - Maximum {n_colors} culori disponibile
 - Noduri adiacente trebuie să aibă culori diferite
 
 Care este cea mai potrivită strategie?''',
-            'correctAnswer': 'Greedy (Largest Degree First)' if is_easy else 'Backtracking cu Forward Checking',
-            'explanation': f'''Răspuns: {"Greedy cu ordonare (Largest Degree First)" if is_easy else "Backtracking cu Forward Checking"}
+                        'correctAnswer': 'Greedy (Largest Degree First)' if is_easy else 'Backtracking cu Forward Checking',
+                        'explanation': f'''Răspuns: {"Greedy cu ordonare (Largest Degree First)" if is_easy else "Backtracking cu Forward Checking"}
 
 Justificare:
 - Graf {density}: {n_nodes} noduri, {edges} muchii
@@ -119,20 +131,29 @@ Justificare:
 - {"Welsh-Powell garantează Δ+1 culori" if is_easy else "Forward Checking reduce ramificarea"}
 
 Alternative: {"DSatur, Backtracking la eșec" if is_easy else "MRV, Degree Heuristic"}'''
-        }
+                    })
+        return qs
     
-    def _generate_knight(self):
-        """Generează întrebare Knight's Tour"""
-        self.question_counter += 1
-        board_size = random.choice([5, 6, 8])
-        start = [random.randint(0, board_size-1), random.randint(0, board_size-1)]
-        tour_type = random.choice(['open', 'closed'])
+    def _get_all_knight(self):
+        """Generează toate variantele Knight's Tour"""
+        qs = []
+        sizes = [5, 6, 8]
+        types = ['open', 'closed']
         
-        return {
-            'id': self.question_counter,
-            'type': 'knight',
-            'title': f"Knight's Tour ({board_size}x{board_size}, {tour_type})",
-            'question': f'''Pentru problema Knight's Tour:
+        for board_size in sizes:
+            for tour_type in types:
+                # Iterăm prin TOATE pozițiile posibile de start
+                for r in range(board_size):
+                    for c in range(board_size):
+                        self.question_counter += 1
+                        start = [r, c]
+                        
+                        qs.append({
+                            'id': self.question_counter,
+                            'type': 'knight',
+                            # Actualizat titlul pentru unicitate
+                            'title': f"Knight's Tour ({board_size}x{board_size}, {tour_type}, start {r},{c})",
+                            'question': f'''Pentru problema Knight's Tour:
 
 - Tablă de șah {board_size}x{board_size}
 - Poziție start: ({start[0]}, {start[1]})
@@ -140,8 +161,8 @@ Alternative: {"DSatur, Backtracking la eșec" if is_easy else "MRV, Degree Heuri
 - Vizitează fiecare pătrat exact o dată
 
 Care este cea mai potrivită strategie?''',
-            'correctAnswer': 'Backtracking cu Warnsdorff' if board_size <= 6 else 'Warnsdorff cu backtracking limitat',
-            'explanation': f'''Răspuns: {"Backtracking cu heuristica Warnsdorff" if board_size <= 6 else "Warnsdorff cu backtracking limitat"}
+                            'correctAnswer': 'Backtracking cu Warnsdorff' if board_size <= 6 else 'Warnsdorff cu backtracking limitat',
+                            'explanation': f'''Răspuns: {"Backtracking cu heuristica Warnsdorff" if board_size <= 6 else "Warnsdorff cu backtracking limitat"}
 
 Justificare:
 - Tablă {board_size}x{board_size} = {board_size*board_size} pătrate
@@ -151,4 +172,5 @@ Justificare:
 - {"Rezolvare în timp liniar practic" if board_size <= 6 else "Succes ~99% pentru 8x8"}
 
 Alternative: {"Divide & Conquer pentru table mari" if board_size > 6 else "Random backtracking"}'''
-        }
+                        })
+        return qs

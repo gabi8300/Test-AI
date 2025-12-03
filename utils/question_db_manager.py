@@ -14,7 +14,6 @@ class QuestionDBManager:
     def __init__(self, db_config):
         """
         Inițializare cu configurația bazei de date
-
         """
         self.db_config = db_config
 
@@ -34,10 +33,20 @@ class QuestionDBManager:
             if conn:
                 conn.close()
 
+    def get_existing_titles(self):
+        """
+        Returnează un SET cu toate titlurile întrebărilor existente în baza de date.
+        Folosit pentru a filtra rapid duplicatele.
+        """
+        with self.get_connection() as conn:
+            with conn.cursor() as cursor:
+                cursor.execute("SELECT title FROM questions;")
+                # Returnăm un set pentru căutare O(1)
+                return {row[0] for row in cursor.fetchall()}
+
     def save_question(self, question_data):
         """
         Salvează o întrebare în baza de date
-
         """
         with self.get_connection() as conn:
             with conn.cursor() as cursor:
@@ -67,7 +76,6 @@ class QuestionDBManager:
     def _update_stats(self, cursor, question_type):
         """
         Actualizează statisticile pentru tipul de întrebare
-
         """
         query = """
             INSERT INTO question_stats (question_type, total_generated, last_generated)
@@ -82,7 +90,6 @@ class QuestionDBManager:
     def get_question_by_db_id(self, db_id):
         """
         Recuperează o întrebare după ID-ul din baza de date
-
         """
         with self.get_connection() as conn:
             with conn.cursor(cursor_factory=RealDictCursor) as cursor:
@@ -93,7 +100,6 @@ class QuestionDBManager:
     def get_questions_by_type(self, question_type, limit=10):
         """
         Recuperează întrebările după tip
-
         """
         with self.get_connection() as conn:
             with conn.cursor(cursor_factory=RealDictCursor) as cursor:
@@ -109,7 +115,6 @@ class QuestionDBManager:
     def get_all_questions(self, limit=50, offset=0):
         """
         Recuperează toate întrebările cu paginare
-
         """
         with self.get_connection() as conn:
             with conn.cursor(cursor_factory=RealDictCursor) as cursor:
@@ -124,7 +129,6 @@ class QuestionDBManager:
     def get_statistics(self):
         """
         Recuperează statisticile despre întrebări
-
         """
         with self.get_connection() as conn:
             with conn.cursor(cursor_factory=RealDictCursor) as cursor:
@@ -135,7 +139,6 @@ class QuestionDBManager:
     def search_questions(self, search_term, limit=20):
         """
         Caută întrebări după termen (în titlu sau conținut)
-
         """
         with self.get_connection() as conn:
             with conn.cursor(cursor_factory=RealDictCursor) as cursor:
@@ -152,7 +155,6 @@ class QuestionDBManager:
     def delete_question(self, db_id):
         """
         Șterge o întrebare din baza de date
-
         """
         with self.get_connection() as conn:
             with conn.cursor() as cursor:
@@ -179,7 +181,6 @@ class QuestionDBManager:
     def get_count_by_type(self):
         """
         Returnează numărul de întrebări per tip
-
         """
         with self.get_connection() as conn:
             with conn.cursor(cursor_factory=RealDictCursor) as cursor:
@@ -195,7 +196,6 @@ class QuestionDBManager:
     def get_total_count(self):
         """
         Returnează numărul total de întrebări
-
         """
         with self.get_connection() as conn:
             with conn.cursor() as cursor:
@@ -205,7 +205,6 @@ class QuestionDBManager:
     def clear_all_questions(self):
         """
         Șterge toate întrebările (ATENȚIE: operație periculoasă!)
-
         """
         with self.get_connection() as conn:
             with conn.cursor() as cursor:

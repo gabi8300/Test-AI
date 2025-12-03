@@ -1,4 +1,3 @@
-
 // State Management
 let questions = [];
 let currentQuestion = null;
@@ -85,14 +84,17 @@ function showAnswer() {
  */
 async function generate(type) {
   // 1. Ask user for the number of questions
-  const countInput = prompt("How many questions do you want to generate? (max 10)" , "1");
+  const countInput = prompt(
+    "How many questions do you want to generate? (max 10)",
+    "1"
+  );
   const count = parseInt(countInput, 10);
 
   // 2. Stop if user cancels or enters an invalid number
   if (isNaN(count) || count <= 0) {
     return;
   }
-    // 3. Limit to maximum 10 questions
+  // 3. Limit to maximum 10 questions
   if (count > 10) {
     alert("Maximum 10 questions can be generated at once!");
     return;
@@ -169,13 +171,14 @@ function displayQuestions() {
     return;
   }
 
+  // Aici folosim "index + 1" pentru a numerota de la 1 la N, indiferent de ID-ul din bază
   list.innerHTML = questions
     .map(
-      (q) => `
+      (q, index) => `
         <div class="question-item" onclick='viewQuestion(${JSON.stringify(
           q
         ).replace(/'/g, "&#39;")})'>
-            <strong>#${q.id} - ${q.title}</strong>
+            <strong>#${index + 1} - ${q.title}</strong>
             <div style="font-size: 0.9em; color: #666; margin-top: 5px;">
                 ${escapeHtml(q.question.substring(0, 100))}...
             </div>
@@ -183,6 +186,35 @@ function displayQuestions() {
     `
     )
     .join("");
+}
+
+/**
+ * Șterge întrebarea curentă
+ */
+async function deleteCurrentQuestion() {
+  if (!currentQuestion) return;
+
+  const confirmDelete = confirm(
+    "Sigur vrei să ștergi această întrebare permanent?"
+  );
+  if (!confirmDelete) return;
+
+  try {
+    const res = await fetch(`/api/question/${currentQuestion.dbId}`, {
+      method: "DELETE",
+    });
+
+    if (res.ok) {
+      alert("Întrebare ștersă!");
+      // Reîncărcăm întrebările pentru a actualiza numerotarea
+      showQuestions();
+    } else {
+      alert("Eroare la ștergere!");
+    }
+  } catch (error) {
+    console.error("Eroare:", error);
+    alert("Eroare de conexiune!");
+  }
 }
 
 /**
@@ -213,14 +245,19 @@ function startAnswer() {
  */
 function showCorrect() {
   hideAll();
-  
+
   // Ascunde score-display complet
-  document.getElementById("score-display").style.display = 'none';
-  
+  document.getElementById("score-display").style.display = "none";
+
+  document.getElementById("eval-question-text").textContent =
+    currentQuestion.question;
+
   // Afișează răspunsul corect și explicația
-  document.getElementById("eval-correct").textContent = currentQuestion.correctAnswer;
-  document.getElementById("eval-explanation").textContent = currentQuestion.explanation;
-  
+  document.getElementById("eval-correct").textContent =
+    currentQuestion.correctAnswer;
+  document.getElementById("eval-explanation").textContent =
+    currentQuestion.explanation;
+
   document.getElementById("screen-eval").classList.remove("hidden");
 }
 
@@ -259,9 +296,12 @@ function displayEvaluation(result) {
 
   const scoreClass = getScoreClass(result.score);
 
+  document.getElementById("eval-question-text").textContent =
+    currentQuestion.question;
+
   // Afișează score-display pentru evaluări normale
   const scoreDisplay = document.getElementById("score-display");
-  scoreDisplay.style.display = 'block';
+  scoreDisplay.style.display = "block";
   scoreDisplay.innerHTML = `
         <div class="score-box ${scoreClass}">
             <div style="font-size: 3em; font-weight: bold;">${result.score}%</div>

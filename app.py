@@ -1,54 +1,75 @@
-
 from flask import Flask, jsonify, request, render_template
 from flask_cors import CORS
 from generators.question_generator import QuestionGenerator
 from utils.evaluator import QuestionEvaluator
 from utils.question_db_manager import QuestionDBManager
+import random
 
 app = Flask(__name__)
 CORS(app)
 
+# ============= CONFIGURARE =============
 DB_CONFIG = {
     'host': 'localhost',
     'database': 'smartestDB',
     'user': 'postgres',
     'password': '12345',
-    'port': 5433
+    'port': 5433  # <--- Asigură-te că acesta e portul pe care rulează Postgres acum
 }
 
 generator = QuestionGenerator()
 evaluator = QuestionEvaluator()
 db_manager = QuestionDBManager(DB_CONFIG)
 
+# ============= RUTE PRINCIPALE =============
 
 @app.route('/')
 def home():
     """Pagina principală"""
     return render_template('index.html')
+
 @app.route('/api/batch-generate', methods=['POST'])
 def api_batch_generate():
-    """Generează un lot de întrebări și salvează în baza de date"""
+    """Generează întrebări unice alegând din lista celor disponibile"""
     try:
         data = request.json
         q_type = data.get('type', 'random')
-        # Get 'count' from the request, default to 1 if not provided
         count = data.get('count', 1)
         
-        generated_questions = []
+        # 1. Obține toate întrebările posibile (Universul)
+        all_possible = generator.get_all_questions()
+        
+        # Filtrează după tip dacă e cerut
+        if q_type != 'random':
+            all_possible = [q for q in all_possible if q['type'] == q_type]
 
-        for _ in range(count):
-            # Generează întrebare
-            question = generator.generate_question(q_type)
-
-            # Salvează în baza de date
+        # 2. Obține ce avem deja în baza de date
+        existing_titles = db_manager.get_existing_titles()
+        
+        # 3. Calculează DISPONIBILE (Posibile - Existente)
+        available_questions = [
+            q for q in all_possible 
+            if q['title'] not in existing_titles
+        ]
+        
+        if not available_questions:
+            return jsonify({'error': f'Nu mai există întrebări unice de tipul "{q_type}" de generat!'}), 400
+            
+        # 4. Alege aleatoriu din cele disponibile
+        # Dacă userul cere mai multe decât avem, luăm tot ce a rămas
+        num_to_generate = min(count, len(available_questions))
+        
+        selected_questions = random.sample(available_questions, num_to_generate)
+        
+        saved_questions = []
+        for question in selected_questions:
+            # Salvăm direct (știm sigur că e unic)
             db_id = db_manager.save_question(question)
+            if db_id:
+                question['dbId'] = db_id
+                saved_questions.append(question)
 
-            # Adaugă ID-ul din baza de date la răspuns
-            question['dbId'] = db_id
-            generated_questions.append(question)
-
-        # Return the list of newly created questions
-        return jsonify(generated_questions)
+        return jsonify(saved_questions)
 
     except Exception as e:
         app.logger.error(f"Eroare la generare batch: {e}")
@@ -56,18 +77,23 @@ def api_batch_generate():
 
 @app.route('/api/generate', methods=['POST'])
 def api_generate():
-    """Generează întrebare și salvează în baza de date"""
+    """Generează o singură întrebare unică"""
     try:
         data = request.json
         q_type = data.get('type', 'random')
 
-        # Generează întrebare
-        question = generator.generate_question(q_type)
+        all_possible = generator.get_all_questions()
+        if q_type != 'random':
+            all_possible = [q for q in all_possible if q['type'] == q_type]
 
-        # Salvează în baza de date
+        existing_titles = db_manager.get_existing_titles()
+        available = [q for q in all_possible if q['title'] not in existing_titles]
+
+        if not available:
+            return jsonify({'error': 'Toate întrebările posibile au fost deja generate!'}), 400
+
+        question = random.choice(available)
         db_id = db_manager.save_question(question)
-
-        # Adaugă ID-ul din baza de date la răspuns
         question['dbId'] = db_id
 
         return jsonify(question)
@@ -76,6 +102,7 @@ def api_generate():
         app.logger.error(f"Eroare la generare: {e}")
         return jsonify({'error': str(e)}), 500
 
+# ============= RUTE AUXILIARE (GET, EVALUATE, ETC) =============
 
 @app.route('/api/questions', methods=['GET'])
 def api_questions():
@@ -84,7 +111,6 @@ def api_questions():
         limit = request.args.get('limit', 50, type=int)
         questions = db_manager.get_all_questions(limit)
 
-        # Convertește din formatul DB în formatul frontend
         formatted_questions = []
         for q in questions:
             formatted_questions.append({
@@ -104,7 +130,6 @@ def api_questions():
         app.logger.error(f"Eroare la încărcarea întrebărilor: {e}")
         return jsonify({'error': str(e)}), 500
 
-
 @app.route('/api/question/<int:db_id>', methods=['GET'])
 def api_question_detail(db_id):
     """Detalii întrebare după ID bază de date"""
@@ -114,7 +139,6 @@ def api_question_detail(db_id):
         if not question:
             return jsonify({'error': 'Întrebare negăsită'}), 404
 
-        # Formatează răspunsul
         formatted = {
             'id': question['question_id'],
             'dbId': question['id'],
@@ -131,27 +155,21 @@ def api_question_detail(db_id):
         app.logger.error(f"Eroare la detalii întrebare: {e}")
         return jsonify({'error': str(e)}), 500
 
-
 @app.route('/api/evaluate', methods=['POST'])
 def api_evaluate():
     """Evaluează răspuns"""
     try:
         data = request.json
-        question_id = data.get('questionId')  # ID din generator
         db_id = data.get('dbId')  # ID din baza de date (opțional)
         user_answer = data.get('userAnswer', '')
 
-        # Încearcă să găsească întrebarea
         question = None
-        print (db_id)
         if db_id:
-            # Caută după ID-ul din baza de date
             question = db_manager.get_question_by_db_id(db_id)
 
         if not question:
             return jsonify({'error': 'Întrebare negăsită'}), 404
 
-        # Convertește în formatul așteptat de evaluator
         question_data = {
             'id': question['question_id'],
             'type': question['type'],
@@ -161,7 +179,6 @@ def api_evaluate():
             'explanation': question['explanation']
         }
 
-        # Evaluează răspunsul
         result = evaluator.evaluate_answer(question_data, user_answer)
 
         return jsonify({
@@ -175,7 +192,6 @@ def api_evaluate():
         app.logger.error(f"Eroare la evaluare: {e}")
         return jsonify({'error': str(e)}), 500
 
-
 @app.route('/api/stats', methods=['GET'])
 def api_stats():
     """Statistici întrebări din baza de date"""
@@ -187,7 +203,6 @@ def api_stats():
         app.logger.error(f"Eroare la statistici: {e}")
         return jsonify({'error': str(e)}), 500
 
-
 @app.route('/api/questions/type/<q_type>', methods=['GET'])
 def api_questions_by_type(q_type):
     """Întrebări după tip"""
@@ -195,7 +210,6 @@ def api_questions_by_type(q_type):
         limit = request.args.get('limit', 10, type=int)
         questions = db_manager.get_questions_by_type(q_type, limit)
 
-        # Formatează răspunsul
         formatted_questions = []
         for q in questions:
             formatted_questions.append({
@@ -214,7 +228,6 @@ def api_questions_by_type(q_type):
         app.logger.error(f"Eroare la căutare după tip: {e}")
         return jsonify({'error': str(e)}), 500
 
-
 @app.route('/api/test-connection', methods=['GET'])
 def test_connection():
     """Testează conexiunea la baza de date"""
@@ -224,7 +237,6 @@ def test_connection():
                 cursor.execute("SELECT version();")
                 version = cursor.fetchone()[0]
 
-                # Verifică și tabela questions
                 cursor.execute("SELECT COUNT(*) FROM questions;")
                 count = cursor.fetchone()[0]
 
@@ -243,13 +255,27 @@ def test_connection():
             'database': DB_CONFIG['database']
         }), 500
 
+@app.route('/api/question/<int:db_id>', methods=['DELETE'])
+def api_delete_question(db_id):
+    """Șterge o întrebare după ID"""
+    try:
+        success = db_manager.delete_question(db_id)
+        if success:
+            return jsonify({'message': 'Întrebare ștearsă cu succes'})
+        else:
+            return jsonify({'error': 'Întrebarea nu a fost găsită'}), 404
+    except Exception as e:
+        app.logger.error(f"Eroare la ștergere: {e}")
+        return jsonify({'error': str(e)}), 500
+    
+
+
 
 # ============= ERROR HANDLERS =============
 
 @app.errorhandler(404)
 def not_found(error):
     return jsonify({'error': 'Endpoint negăsit'}), 404
-
 
 @app.errorhandler(500)
 def internal_error(error):
