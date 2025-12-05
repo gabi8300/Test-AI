@@ -12,9 +12,8 @@
             <h1>🎓 SmarTest</h1>
             <p>Generator Întrebări pentru Probleme de Căutare AI</p>
         </div>
-        
+
         <div class="content">
-            <!-- Home Screen -->
             <div id="screen-home">
                 <h2>Bine ai venit!</h2>
                 <div class="menu-grid">
@@ -28,45 +27,61 @@
                     </div>
                     <div class="menu-card" onclick="showAnswer()">
                         <h3>✏️ Răspunde</h3>
-                        <p>Testează-ți cunoștințele</p>
+                        <p>Testează-ți cunoștințele (individual)</p>
+                    </div>
+                    <div class="menu-card" onclick="showTestConfig()">
+                        <h3>📝 Test Nou</h3>
+                        <p>Generează și rezolvă un test</p>
                     </div>
                 </div>
             </div>
-            
-            <!-- Generate Screen -->
+
             <div id="screen-generate" class="hidden">
-                <button class="btn btn-secondary" onclick="showHome()">⬅️ Înapoi</button>
-                <h2>Generează Întrebare</h2>
-                <div style="margin: 20px 0;">
-                    <button class="type-btn" onclick="generate('n-queens')">👑 N-Queens</button>
-                    <button class="type-btn" onclick="generate('hanoi')">🗼 Hanoi</button>
-                    <button class="type-btn" onclick="generate('coloring')">🎨 Graph Coloring</button>
-                    <button class="type-btn" onclick="generate('knight')">♘ Knight's Tour</button>
-                    <button class="type-btn" onclick="generate('random')">🎲 ALEATORIU</button>
-                </div>
+                <button class="btn btn-secondary" onclick="showHome()">⬅️ Acasă</button>
+                <h2>Generează Întrebări</h2>
+                <p>Alege tipul și numărul de întrebări unice de generat:</p>
+                <form id="generate-form">
+                    <div class="form-group">
+                        <label for="question-type">Tip Întrebare:</label>
+                        <select id="question-type" class="form-control">
+                            <option value="random">Aleatoriu</option>
+                            <option value="n-queens">N-Queens</option>
+                            <option value="hanoi">Turnurile din Hanoi</option>
+                            <option value="coloring">Colorare Graf</option>
+                            <option value="knight">Knight's Tour</option>
+                        </select>
+                    </div>
+                    <div class="form-group">
+                        <label for="question-count">Număr de întrebări (max 20):</label>
+                        <input type="number" id="question-count" class="form-control" value="5" min="1" max="20">
+                    </div>
+                    <div style="text-align: center; margin-top: 20px;">
+                        <button type="button" class="btn btn-primary" onclick="generateBatch()">🚀 Generează și Salvează</button>
+                    </div>
+                </form>
+                <div id="generation-status" style="margin-top: 20px; text-align: center;"></div>
             </div>
-            
-            <!-- View Question Screen -->
-            <div id="screen-view" class="hidden">
-                <button class="btn btn-secondary" onclick="showQuestions()">⬅️ Înapoi</button>
-                <h2 id="view-title"></h2>
-                <div class="question-box" id="view-question"></div>
-                
-                <div style="display: flex; gap: 10px; flex-wrap: wrap;">
-                    <button class="btn" onclick="startAnswer()">✏️ Răspunde</button>
-                    <button class="btn btn-success" onclick="showCorrect()">👁️ Vezi răspuns</button>
-                    <button class="btn btn-danger" onclick="deleteCurrentQuestion()">🗑️ Șterge</button>
-                </div>
-            </div>  
-            
-            <!-- Questions List Screen -->
+
             <div id="screen-questions" class="hidden">
-                <button class="btn btn-secondary" onclick="showHome()">⬅️ Înapoi</button>
-                <h2>Întrebări Generate (<span id="total">0</span>)</h2>
-                <div id="questions-list"></div>
+                <button class="btn btn-secondary" onclick="showHome()">⬅️ Acasă</button>
+                <h2>Lista Întrebări (<span id="total">0</span>)</h2>
+                <div style="text-align: right; margin-bottom: 20px;">
+                    <button class="btn btn-info" onclick="downloadPDF()">⬇️ Descarcă PDF</button>
+                    <button class="btn btn-danger" onclick="confirmClearAll()">⚠️ Șterge Tot</button>
+                </div>
+                <div id="questions-list">
+                    </div>
             </div>
-            
-            <!-- Answer Screen -->
+
+            <div id="screen-detail" class="hidden">
+                <button class="btn btn-secondary" onclick="showQuestions()">⬅️ Înapoi la Listă</button>
+                <h2 id="detail-title"></h2>
+                <div class="question-box" id="detail-question"></div>
+                <div style="text-align: right; margin-top: 20px;">
+                    <button class="btn btn-danger" id="delete-q-btn" onclick="confirmDeleteQuestion()">❌ Șterge</button>
+                </div>
+            </div>
+
             <div id="screen-answer" class="hidden">
                 <button class="btn btn-secondary" onclick="showHome()">⬅️ Înapoi</button>
                 <h2 id="answer-title"></h2>
@@ -76,8 +91,7 @@
                     <button class="btn btn-success" onclick="submitAnswer()">✅ Evaluează</button>
                 </div>
             </div>
-            
-            <!-- Evaluation Screen -->
+
             <div id="screen-eval" class="hidden">
                 <button class="btn btn-secondary" onclick="showHome()">⬅️ Acasă</button>
                 <h2>Evaluare</h2>
@@ -95,9 +109,44 @@
                     <div id="eval-explanation"></div>
                 </div>
             </div>
+
+            <div id="screen-test-config" class="hidden">
+                <button class="btn btn-secondary" onclick="showHome()">⬅️ Acasă</button>
+                <h2>Configurare Test</h2>
+                <p>Alege numărul de întrebări pentru fiecare tip. (Total întrebări disponibile: <span id="total-q-config">0</span>)</p>
+                <form id="test-config-form" class="form-grid" style="margin-top: 20px;">
+                    </form>
+                <div style="text-align: center; margin-top: 30px;">
+                    <button class="btn btn-primary" onclick="generateTest()">🚀 Start Test</button>
+                </div>
+            </div>
+
+            <div id="screen-test-quiz" class="hidden">
+                <button class="btn btn-secondary" onclick="showHome()">❌ Anulează Test</button>
+                <h2 id="test-quiz-title">Test în derulare (<span id="current-q-index">1</span>/<span id="total-q-test">10</span>)</h2>
+                <div class="question-box" id="test-quiz-question-container">
+                    <h3 id="test-q-title"></h3>
+                    <p id="test-q-text"></p>
+                    <textarea id="test-user-answer" placeholder="Scrie răspunsul tău aici..." style="margin-top: 20px;"></textarea>
+                </div>
+                <div style="text-align: right; margin-top: 20px;">
+                    <button class="btn btn-info" id="prev-q-btn" onclick="navigateTest(-1)" disabled>Înapoi</button>
+                    <button class="btn btn-primary" id="next-q-btn" onclick="navigateTest(1)">Următoarea</button>
+                    <button class="btn btn-success hidden" id="finish-test-btn" onclick="submitTest()">✅ Finalizează Test</button>
+                </div>
+            </div>
+
+            <div id="screen-test-results" class="hidden">
+                <button class="btn btn-secondary" onclick="showHome()">⬅️ Acasă</button>
+                <h2>Rezultate Test</h2>
+                <div id="test-global-score" class="score-box" style="margin-bottom: 30px;"></div>
+
+                <div id="test-results-list">
+                    </div>
+            </div>
         </div>
     </div>
-    
+
     <script src="{{ url_for('static', filename='js/app.js') }}"></script>
 </body>
 </html>

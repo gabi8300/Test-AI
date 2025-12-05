@@ -46,137 +46,106 @@ class QuestionDBManager:
 
     def save_question(self, question_data):
         """
-        Salvează o întrebare în baza de date
+        Salvează o nouă întrebare în baza de date.
+        question_data trebuie să conțină: title, question, correct_answer, explanation, type
         """
         with self.get_connection() as conn:
             with conn.cursor() as cursor:
+                # 1. Inserare în tabela questions
                 query = """
                     INSERT INTO questions 
-                    (question_id, type, title, question, correct_answer, explanation)
+                    (title, question, correct_answer, explanation, type, created_at)
                     VALUES (%s, %s, %s, %s, %s, %s)
                     RETURNING id;
                 """
-
                 cursor.execute(query, (
-                    question_data['id'],
-                    question_data['type'],
                     question_data['title'],
                     question_data['question'],
-                    question_data['correctAnswer'],
-                    question_data['explanation']
+                    question_data['correct_answer'],
+                    question_data['explanation'],
+                    question_data['type'],
+                    datetime.now()
                 ))
+                new_id = cursor.fetchone()[0]
 
-                db_id = cursor.fetchone()[0]
+                # 2. Actualizare/Creare în tabela question_stats
+                # Verificăm dacă tipul există deja
+                cursor.execute("SELECT total_generated FROM question_stats WHERE question_type = %s;", (question_data['type'],))
+                if cursor.fetchone():
+                    # Dacă există, actualizăm
+                    cursor.execute("""
+                        UPDATE question_stats SET total_generated = total_generated + 1
+                        WHERE question_type = %s;
+                    """, (question_data['type'],))
+                else:
+                    # Dacă nu există, inserăm
+                    cursor.execute("""
+                        INSERT INTO question_stats (question_type, total_generated)
+                        VALUES (%s, 1);
+                    """, (question_data['type'],))
 
-                # Actualizează statisticile
-                self._update_stats(cursor, question_data['type'])
+                return new_id
 
-                return db_id
-
-    def _update_stats(self, cursor, question_type):
+    def get_all_questions(self):
         """
-        Actualizează statisticile pentru tipul de întrebare
-        """
-        query = """
-            INSERT INTO question_stats (question_type, total_generated, last_generated)
-            VALUES (%s, 1, CURRENT_TIMESTAMP)
-            ON CONFLICT (question_type) 
-            DO UPDATE SET 
-                total_generated = question_stats.total_generated + 1,
-                last_generated = CURRENT_TIMESTAMP;
-        """
-        cursor.execute(query, (question_type,))
-
-    def get_question_by_db_id(self, db_id):
-        """
-        Recuperează o întrebare după ID-ul din baza de date
-        """
-        with self.get_connection() as conn:
-            with conn.cursor(cursor_factory=RealDictCursor) as cursor:
-                query = "SELECT * FROM questions WHERE id = %s;"
-                cursor.execute(query, (db_id,))
-                return cursor.fetchone()
-
-    def get_questions_by_type(self, question_type, limit=10):
-        """
-        Recuperează întrebările după tip
+        Returnează toate întrebările. (Doar meta-date: id, title, type, created_at)
         """
         with self.get_connection() as conn:
             with conn.cursor(cursor_factory=RealDictCursor) as cursor:
                 query = """
-                    SELECT * FROM questions 
-                    WHERE type = %s 
-                    ORDER BY created_at DESC 
-                    LIMIT %s;
+                    SELECT id, title, type, created_at
+                    FROM questions 
+                    ORDER BY created_at DESC;
                 """
-                cursor.execute(query, (question_type, limit))
-                return cursor.fetchall()
-
-    def get_all_questions(self, limit=50, offset=0):
-        """
-        Recuperează toate întrebările cu paginare
-        """
-        with self.get_connection() as conn:
-            with conn.cursor(cursor_factory=RealDictCursor) as cursor:
-                query = """
-                    SELECT * FROM questions 
-                    ORDER BY created_at DESC 
-                    LIMIT %s OFFSET %s;
-                """
-                cursor.execute(query, (limit, offset))
-                return cursor.fetchall()
-
-    def get_statistics(self):
-        """
-        Recuperează statisticile despre întrebări
-        """
-        with self.get_connection() as conn:
-            with conn.cursor(cursor_factory=RealDictCursor) as cursor:
-                query = "SELECT * FROM question_stats ORDER BY question_type;"
                 cursor.execute(query)
                 return cursor.fetchall()
 
-    def search_questions(self, search_term, limit=20):
+    def get_question_by_id(self, q_id, include_answer=True):
         """
-        Caută întrebări după termen (în titlu sau conținut)
+        Returnează o întrebare după ID.
         """
         with self.get_connection() as conn:
             with conn.cursor(cursor_factory=RealDictCursor) as cursor:
-                query = """
-                    SELECT * FROM questions 
-                    WHERE title ILIKE %s OR question ILIKE %s
-                    ORDER BY created_at DESC 
-                    LIMIT %s;
-                """
-                search_pattern = f'%{search_term}%'
-                cursor.execute(query, (search_pattern, search_pattern, limit))
-                return cursor.fetchall()
+                if include_answer:
+                    query = """
+                        SELECT id, title, question, correct_answer, explanation, type
+                        FROM questions 
+                        WHERE id = %s;
+                    """
+                else:
+                    query = """
+                        SELECT id, title, question, type
+                        FROM questions 
+                        WHERE id = %s;
+                    """
+                cursor.execute(query, (q_id,))
+                return cursor.fetchone()
 
-    def delete_question(self, db_id):
+    def delete_question_by_id(self, q_id):
         """
-        Șterge o întrebare din baza de date
+        Șterge o întrebare după ID și actualizează statisticile.
         """
         with self.get_connection() as conn:
             with conn.cursor() as cursor:
-                # Obține tipul întrebării înainte de ștergere
-                cursor.execute("SELECT type FROM questions WHERE id = %s;", (db_id,))
+                # 1. Obținem tipul întrebării înainte de a o șterge
+                cursor.execute("SELECT type FROM questions WHERE id = %s;", (q_id,))
                 result = cursor.fetchone()
+                if not result:
+                    return False
 
-                if result:
-                    question_type = result[0]
+                q_type = result[0]
 
-                    # Șterge întrebarea
-                    cursor.execute("DELETE FROM questions WHERE id = %s;", (db_id,))
+                # 2. Ștergem întrebarea
+                cursor.execute("DELETE FROM questions WHERE id = %s;", (q_id,))
 
-                    # Actualizează statisticile
-                    cursor.execute("""
-                        UPDATE question_stats 
-                        SET total_generated = total_generated - 1
-                        WHERE question_type = %s AND total_generated > 0;
-                    """, (question_type,))
+                # 3. Decrementăm contorul de statistici
+                cursor.execute("""
+                    UPDATE question_stats SET total_generated = total_generated - 1
+                    WHERE question_type = %s AND total_generated > 0;
+                    """, (q_type,))
 
-                    return True
-                return False
+                return True
+
 
     def get_count_by_type(self):
         """
@@ -215,3 +184,57 @@ class QuestionDBManager:
                 cursor.execute("UPDATE question_stats SET total_generated = 0;")
 
                 return count
+
+    # ======================= METODE PENTRU TEST =======================
+
+    def get_random_questions_by_type(self, q_type, count):
+        """
+        Returnează un număr specificat de întrebări (random) dintr-un anumit tip.
+        """
+        with self.get_connection() as conn:
+            with conn.cursor(cursor_factory=RealDictCursor) as cursor:
+                query = """
+                    SELECT id, title, question, correct_answer, explanation, type
+                    FROM questions 
+                    WHERE type = %s
+                    ORDER BY RANDOM()
+                    LIMIT %s;
+                """
+                cursor.execute(query, (q_type, count))
+                return cursor.fetchall()
+
+    def get_questions_by_ids(self, ids):
+        """
+        Returnează întrebările pentru o listă de ID-uri.
+        Returnează un dicționar {id: question_data}.
+        """
+        if not ids:
+            return {}
+
+        with self.get_connection() as conn:
+            with conn.cursor(cursor_factory=RealDictCursor) as cursor:
+                query = """
+                    SELECT id, title, question, correct_answer, explanation, type
+                    FROM questions 
+                    WHERE id IN %s;
+                """
+                cursor.execute(query, (tuple(ids),))
+
+                return {q['id']: q for q in cursor.fetchall()}
+
+    # ======================= METODĂ NOUĂ PENTRU EXPORT PDF =======================
+
+    def get_all_questions_full(self):
+        """
+        Returnează TOATE întrebările, inclusiv răspunsul și explicația.
+        Folosit pentru exportul PDF.
+        """
+        with self.get_connection() as conn:
+            with conn.cursor(cursor_factory=RealDictCursor) as cursor:
+                query = """
+                    SELECT id, title, question, correct_answer, explanation, type, created_at
+                    FROM questions 
+                    ORDER BY created_at DESC;
+                """
+                cursor.execute(query)
+                return cursor.fetchall()

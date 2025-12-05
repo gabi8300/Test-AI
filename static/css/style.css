@@ -9,14 +9,6 @@
     box-sizing: border-box;
 }
 
-.btn-danger {
-    background: #dc3545;
-}
-
-.btn-danger:hover {
-    background: #c82333;
-}
-
 body {
     font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
     background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
@@ -74,6 +66,7 @@ body {
 }
 
 .menu-card {
+    /* Stilul general al cardurilor (folosit în meniul principal) */
     background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
     color: white;
     padding: 30px;
@@ -131,6 +124,28 @@ body {
     background: #218838;
 }
 
+.btn-danger {
+    background: #dc3545;
+}
+
+.btn-danger:hover {
+    background: #c82333;
+}
+
+.btn-info {
+    background: #17a2b8;
+    color: white;
+}
+
+.btn-info:hover {
+    background: #138496;
+}
+
+.btn[disabled] {
+    background: #ccc;
+    cursor: not-allowed;
+}
+
 /* Type Buttons */
 .type-btn {
     background: white;
@@ -170,7 +185,7 @@ body {
 }
 
 /* Question Items */
-.question-item {
+.question-item, .question-list-item {
     background: #f8f9fa;
     padding: 15px;
     margin: 10px 0;
@@ -180,12 +195,12 @@ body {
     transition: all 0.3s;
 }
 
-.question-item:hover {
+.question-item:hover, .question-list-item:hover {
     box-shadow: 0 5px 15px rgba(0, 0, 0, 0.1);
     transform: translateX(5px);
 }
 
-.question-item strong {
+.question-item strong, .question-list-item strong {
     color: #667eea;
     font-size: 1.1em;
 }
@@ -222,10 +237,10 @@ body {
     border: 3px solid #dc3545;
 }
 
-/* Textarea */
-textarea {
+/* Textarea și Form Controls */
+textarea, .form-control {
     width: 100%;
-    min-height: 200px;
+    min-height: 50px;
     padding: 15px;
     border: 2px solid #ddd;
     border-radius: 5px;
@@ -235,14 +250,19 @@ textarea {
     transition: border-color 0.3s;
 }
 
-textarea:focus {
+textarea:focus, .form-control:focus {
     outline: none;
     border-color: #667eea;
 }
 
+/* Form Group */
+.form-group {
+    margin-bottom: 15px;
+}
+
 /* Utility Classes */
 .hidden {
-    display: none;
+    display: none !important;
 }
 
 /* Responsive Design */
@@ -250,17 +270,17 @@ textarea:focus {
     .header h1 {
         font-size: 2em;
     }
-    
+
     .menu-grid {
         grid-template-columns: 1fr;
     }
-    
+
     .type-btn {
         display: block;
         width: 100%;
         margin: 10px 0;
     }
-    
+
     .content {
         padding: 20px;
     }
@@ -280,4 +300,67 @@ textarea:focus {
 
 .content > div:not(.hidden) {
     animation: fadeIn 0.3s ease-in-out;
+}
+
+
+/* ===================================================================
+   ADAUGIRI FINALE PENTRU CONFIGURAREA TESTULUI (ESTETICĂ)
+   =================================================================== */
+
+/* Stilul care forțează aranjarea pe 2 coloane */
+.form-grid {
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    gap: 20px;
+}
+
+/* Aplicăm gradientul cardurilor de meniu, dar le adaptăm pentru formular */
+#screen-test-config .menu-card {
+    /* Preluăm gradientul */
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    color: white;
+    padding: 20px; /* Padding mai mic pentru formular */
+    text-align: left; /* Aliniem textul la stânga */
+    cursor: default; /* Eliminăm cursorul pointer */
+    /* Anulăm transformarea la hover */
+    transition: box-shadow 0.3s;
+    transform: none;
+}
+
+#screen-test-config .menu-card:hover {
+    transform: none;
+    box-shadow: 0 8px 20px rgba(0, 0, 0, 0.3); /* Umbră vizibilă la hover */
+}
+
+/* Stil pentru titlu în cardul de configurare */
+#screen-test-config .menu-card label strong {
+    color: white; /* Titlul rămâne alb */
+    font-size: 1.2em;
+    display: block;
+    margin-bottom: 5px;
+}
+
+/* Stil pentru textul "Disponibile" */
+#screen-test-config .menu-card p {
+    color: #e0e0e0;
+    font-size: 0.9em;
+    margin-bottom: 10px;
+    opacity: 1;
+}
+
+/* Input-ul din card ar trebui să aibă fundal alb pentru lizibilitate */
+#screen-test-config .menu-card input[type="number"] {
+    max-width: 100px;
+    margin-top: 5px;
+    background: white;
+    color: #333;
+    border: none;
+    padding: 8px 10px;
+}
+
+/* Responsive pentru Configurare Test */
+@media (max-width: 768px) {
+    .form-grid {
+        grid-template-columns: 1fr; /* O singură coloană pe mobil */
+    }
 }
