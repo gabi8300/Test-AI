@@ -70,7 +70,7 @@
                     <button class="btn btn-danger" onclick="confirmClearAll()">⚠️ Șterge Tot</button>
                 </div>
                 <div id="questions-list">
-                    </div>
+                </div>
             </div>
 
             <div id="screen-detail" class="hidden">
@@ -115,7 +115,7 @@
                 <h2>Configurare Test</h2>
                 <p>Alege numărul de întrebări pentru fiecare tip. (Total întrebări disponibile: <span id="total-q-config">0</span>)</p>
                 <form id="test-config-form" class="form-grid" style="margin-top: 20px;">
-                    </form>
+                </form>
                 <div style="text-align: center; margin-top: 30px;">
                     <button class="btn btn-primary" onclick="generateTest()">🚀 Start Test</button>
                 </div>
@@ -123,15 +123,18 @@
 
             <div id="screen-test-quiz" class="hidden">
                 <button class="btn btn-secondary" onclick="showHome()">❌ Anulează Test</button>
-                <h2 id="test-quiz-title">Test în derulare (<span id="current-q-index">1</span>/<span id="total-q-test">10</span>)</h2>
+                <h2 id="test-quiz-title">Test în derulare</h2>
+                <div style="text-align: center; margin-bottom: 20px; font-size: 1.2em; color: #667eea;">
+                    <strong>Întrebarea <span id="current-q-index">1</span> din <span id="total-q-test">10</span></strong>
+                </div>
                 <div class="question-box" id="test-quiz-question-container">
                     <h3 id="test-q-title"></h3>
-                    <p id="test-q-text"></p>
+                    <p id="test-q-text" style="white-space: pre-wrap; margin-top: 15px;"></p>
                     <textarea id="test-user-answer" placeholder="Scrie răspunsul tău aici..." style="margin-top: 20px;"></textarea>
                 </div>
                 <div style="text-align: right; margin-top: 20px;">
-                    <button class="btn btn-info" id="prev-q-btn" onclick="navigateTest(-1)" disabled>Înapoi</button>
-                    <button class="btn btn-primary" id="next-q-btn" onclick="navigateTest(1)">Următoarea</button>
+                    <button class="btn btn-info" id="prev-q-btn" onclick="navigateTest(-1)" disabled>⬅️ Înapoi</button>
+                    <button class="btn btn-primary" id="next-q-btn" onclick="navigateTest(1)">Următoarea ➡️</button>
                     <button class="btn btn-success hidden" id="finish-test-btn" onclick="submitTest()">✅ Finalizează Test</button>
                 </div>
             </div>
@@ -142,7 +145,7 @@
                 <div id="test-global-score" class="score-box" style="margin-bottom: 30px;"></div>
 
                 <div id="test-results-list">
-                    </div>
+                </div>
             </div>
         </div>
     </div>

@@ -43,7 +43,7 @@ class QuestionGenerator:
 Trebuie să plasați {n} regine pe o tablă de șah {n}x{n} astfel încât nicio regină să nu se atace reciproc.
 
 Care este cea mai potrivită strategie de rezolvare? Justificați alegerea.''',
-                'correctAnswer': 'Backtracking cu DFS' if n <= 8 else 'Backtracking cu Forward Checking și MRV',
+                'correct_answer': 'Backtracking cu DFS' if n <= 8 else 'Backtracking cu Forward Checking și MRV',
                 'explanation': f'''Răspuns: {"Backtracking cu DFS" if n <= 8 else "Backtracking cu Forward Checking și MRV"}
 
 Justificare:
@@ -75,7 +75,7 @@ Alternative: {"Forward Checking, MRV" if n <= 8 else "AC-3, Minimum Conflicts"}'
 - Un disc mai mare nu poate fi peste unul mai mic
 
 Care este cea mai potrivită strategie?''',
-                    'correctAnswer': 'Algoritm recursiv (DFS)' if n_pegs == 3 else 'BFS',
+                    'correct_answer': 'Algoritm recursiv (DFS)' if n_pegs == 3 else 'BFS',
                     'explanation': f'''Răspuns: {"Algoritm recursiv (DFS)" if n_pegs == 3 else "BFS"}
 
 Justificare:
@@ -121,7 +121,7 @@ Alternative: {"IDS pentru memorie limitată" if n_pegs == 3 else "IDS (Iterative
 - Noduri adiacente trebuie să aibă culori diferite
 
 Care este cea mai potrivită strategie?''',
-                        'correctAnswer': 'Greedy (Largest Degree First)' if is_easy else 'Backtracking cu Forward Checking',
+                        'correct_answer': 'Greedy (Largest Degree First)' if is_easy else 'Backtracking cu Forward Checking',
                         'explanation': f'''Răspuns: {"Greedy cu ordonare (Largest Degree First)" if is_easy else "Backtracking cu Forward Checking"}
 
 Justificare:
@@ -161,7 +161,7 @@ Alternative: {"DSatur, Backtracking la eșec" if is_easy else "MRV, Degree Heuri
 - Vizitează fiecare pătrat exact o dată
 
 Care este cea mai potrivită strategie?''',
-                            'correctAnswer': 'Backtracking cu Warnsdorff' if board_size <= 6 else 'Warnsdorff cu backtracking limitat',
+                            'correct_answer': 'Backtracking cu Warnsdorff' if board_size <= 6 else 'Warnsdorff cu backtracking limitat',
                             'explanation': f'''Răspuns: {"Backtracking cu heuristica Warnsdorff" if board_size <= 6 else "Warnsdorff cu backtracking limitat"}
 
 Justificare:

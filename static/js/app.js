@@ -66,6 +66,7 @@ async function generateBatch() {
   const count = parseInt(document.getElementById("question-count").value);
   const statusEl = document.getElementById("generation-status");
   statusEl.innerHTML = "⏳ Se generează... Așteaptă câteva secunde.";
+  statusEl.innerHTML = "<div style='color: #667eea;'><span class='loading'></span> Se generează... Așteaptă câteva secunde.</div>";
 
   try {
     const res = await fetch("/api/batch-generate", {
@@ -400,7 +401,13 @@ async function generateTest() {
  */
 function showTestQuiz() {
     hideAll();
-    document.getElementById("screen-test-quiz").classList.remove("hidden");
+    const testScreen = document.getElementById("screen-test-quiz");
+    testScreen.classList.remove("hidden");
+    
+    // Forțează browser-ul să re-rendereze înainte de a accesa elementele
+    testScreen.offsetHeight; // Trigger reflow
+    
+    // Acum încarcă întrebarea
     loadQuestion(currentTestIndex);
 }
 
@@ -409,31 +416,57 @@ function showTestQuiz() {
  * @param {number} index - Indexul întrebării în `testQuestions`
  */
 function loadQuestion(index) {
-    // 1. Salvăm răspunsul curent înainte de a naviga (dacă nu e prima întrebare)
-    if (currentTestIndex >= 0 && currentTestIndex < testQuestions.length) {
+    // Validare: verificăm dacă indexul este valid
+    if (index < 0 || index >= testQuestions.length) {
+        console.error('Index invalid:', index);
+        return;
+    }
+
+    // 1. Salvăm răspunsul curent înainte de a naviga (dacă nu e prima încărcare)
+    if (currentTestIndex >= 0 && currentTestIndex < testQuestions.length && currentTestIndex !== index) {
         saveCurrentAnswer();
     }
 
     currentTestIndex = index;
     const currentQ = testQuestions[index];
 
-    // 2. Actualizăm UI
-    document.getElementById("current-q-index").textContent = index + 1;
-    document.getElementById("total-q-test").textContent = testQuestions.length;
-    document.getElementById("test-quiz-title").textContent = `Test în derulare (${index + 1}/${testQuestions.length})`;
+    // 2. Actualizăm UI - verificăm dacă elementele există
+    const currentIndexEl = document.getElementById("current-q-index");
+    const totalTestEl = document.getElementById("total-q-test");
+    const titleEl = document.getElementById("test-quiz-title");
+    const qTitleEl = document.getElementById("test-q-title");
+    const qTextEl = document.getElementById("test-q-text");
+    const answerEl = document.getElementById("test-user-answer");
+    
+    if (!currentIndexEl || !totalTestEl || !titleEl || !qTitleEl || !qTextEl || !answerEl) {
+        console.error('Elemente lipsă:', {
+            currentIndex: !!currentIndexEl,
+            totalTest: !!totalTestEl,
+            title: !!titleEl,
+            qTitle: !!qTitleEl,
+            qText: !!qTextEl,
+            answer: !!answerEl
+        });
+        return;
+    }
 
-    document.getElementById("test-q-title").textContent = `[${currentQ.type.toUpperCase()}] ${currentQ.title}`;
-    document.getElementById("test-q-text").textContent = currentQ.question;
+    currentIndexEl.textContent = index + 1;
+    totalTestEl.textContent = testQuestions.length;
+    titleEl.textContent = `Test în derulare (${index + 1}/${testQuestions.length})`;
+    qTitleEl.textContent = `[${currentQ.type.toUpperCase()}] ${currentQ.title}`;
+    qTextEl.textContent = currentQ.question;
 
     // 3. Reîncărcăm răspunsul salvat (dacă există)
-    document.getElementById("test-user-answer").value = testAnswers[currentQ.id] || '';
+    answerEl.value = testAnswers[currentQ.id] || '';
 
     // 4. Gestionăm butoanele de navigare și finalizare
-    document.getElementById("prev-q-btn").disabled = index === 0;
-    // Butonul "Următoarea" se ascunde la ultima întrebare
-    document.getElementById("next-q-btn").classList.toggle("hidden", index === testQuestions.length - 1);
-    // Butonul "Finalizează Test" apare doar la ultima întrebare
-    document.getElementById("finish-test-btn").classList.toggle("hidden", index !== testQuestions.length - 1);
+    const prevBtn = document.getElementById("prev-q-btn");
+    const nextBtn = document.getElementById("next-q-btn");
+    const finishBtn = document.getElementById("finish-test-btn");
+    
+    if (prevBtn) prevBtn.disabled = index === 0;
+    if (nextBtn) nextBtn.classList.toggle("hidden", index === testQuestions.length - 1);
+    if (finishBtn) finishBtn.classList.toggle("hidden", index !== testQuestions.length - 1);
 }
 
 /**

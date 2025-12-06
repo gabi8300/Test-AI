@@ -1,7 +1,6 @@
 -- Tabel pentru întrebări
 CREATE TABLE questions (
     id SERIAL PRIMARY KEY,
-    question_id INTEGER NOT NULL,
     type VARCHAR(50) NOT NULL,
     title VARCHAR(255) NOT NULL,
     question TEXT NOT NULL,

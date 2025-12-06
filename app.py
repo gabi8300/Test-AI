@@ -121,18 +121,19 @@ def api_evaluate_answer():
 
         # Extrage datele necesare
         correct_answer = question_data['correct_answer']
+        explanation = question_data.get('explanation', '')
         q_type = question_data['type']
 
         # Evaluează răspunsul folosind QuestionEvaluator
         evaluation_result = evaluator.evaluate(user_answer, correct_answer, q_type)
 
-        # Întoarce rezultatul
+        # Întoarce rezultatul - folosim explicația din baza de date
         return jsonify({
             'questionId': q_id,
             'score': evaluation_result['score'],
             'feedback': evaluation_result['feedback'],
             'correctAnswer': correct_answer,
-            'explanation': evaluation_result['explanation']
+            'explanation': explanation  # Explicația completă din DB
         })
 
     except Exception as e:
@@ -243,7 +244,7 @@ def api_evaluate_test():
                     'question': question_data['question'],
                     'user_answer': user_answer,
                     'correct_answer': question_data['correct_answer'],
-                    'explanation': evaluation_result['explanation'],
+                    'explanation': question_data['explanation'],  # Explicația completă din DB
                     'score': evaluation_result['score'],
                     'feedback': evaluation_result['feedback']
                 })
