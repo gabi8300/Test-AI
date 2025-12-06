@@ -1,13 +1,15 @@
 """
 Evaluator pentru răspunsurile utilizatorilor
+ACTUALIZAT cu suport pentru Nash Equilibrium
 """
 import re
+import json
 
 class QuestionEvaluator:
     """Clasă responsabilă pentru evaluarea răspunsurilor"""
     
     def __init__(self):
-        # Lista de termeni de negație pentru a evita false-positives
+        # Lista de termeni de negație
         self.negations = [
             'nu', 'not', 'fara', 'fără', 'without', 'nici', 'niciun', 'nicio', 
             'never', 'avoid', 'exclude', 'bad', 'gresit', 'greșit', 'wrong'
@@ -43,6 +45,13 @@ class QuestionEvaluator:
                 'backtracking', 'back tracking', 'back-tracking',
                 'heuristic', 'heuristica', 'euristic',
                 'degree', 'grad', 'degree heuristic'
+            ],
+            'nash': [
+                'nash', 'echilibru', 'equilibrium', 'equilibria',
+                'pur', 'pure', 'mixt', 'mixed',
+                'strategie', 'strategy', 'strategies',
+                'plata', 'plată', 'payoff', 'payoffs',
+                'jucator', 'jucător', 'player'
             ]
         }
         
@@ -75,7 +84,7 @@ class QuestionEvaluator:
             q_type (str): Tipul întrebării
             
         Returns:
-            dict: Dicționar cu score, feedback și explanation
+            dict: Dicționar cu score, feedback
         """
         # Gestionăm cazul în care user_answer este None sau gol
         if not user_answer or not user_answer.strip():
@@ -84,12 +93,17 @@ class QuestionEvaluator:
                 'feedback': '❌ Niciun răspuns furnizat.'
             }
         
+        # Verificăm dacă e Nash - folosim evaluator specializat
+        if q_type == 'nash':
+            return self._evaluate_nash(user_answer, correct_answer)
+        
+        # Evaluare standard pentru celelalte tipuri
         user_lower = user_answer.lower()
         correct_lower = correct_answer.lower()
         
         score = 0
         
-        # Verificare exact match (considerând și variante)
+        # Verificare exact match
         if self._is_equivalent_answer(user_lower, correct_lower):
             score = 100
         else:
@@ -101,50 +115,103 @@ class QuestionEvaluator:
             )
             
             if user_has_all_required and len(required_terms) > 0:
-                # Dacă are toți termenii obligatorii, scor mare
                 score = 85
-                
-                # Verifică cuvinte cheie suplimentare pentru punctaj maxim
                 keyword_score = self._check_keywords(user_lower, q_type)
                 if keyword_score > 20:
                     score = 100
             else:
-                # Evaluare parțială standard
-                # 1. Verifică algoritmul principal (50 puncte)
                 algo_score = self._check_main_algorithm(user_lower, correct_lower)
                 score += algo_score
-                
-                # 2. Verifică cuvinte cheie relevante (50 puncte)
                 keyword_score = self._check_keywords(user_lower, q_type)
                 score += keyword_score
         
-        # Limitează scorul la 100
         score = min(100, score)
-        
-        # Determină feedback-ul
         feedback = self._get_feedback(score)
         
         return {
             'score': score,
             'feedback': feedback
         }
-
-    def _extract_required_terms(self, correct_answer):
-        """
-        Extrage termenii obligatorii din răspunsul corect.
-        De exemplu: "Backtracking cu DFS" -> ['backtracking', 'dfs']
-        """
-        required = []
+    
+    # ==================== EVALUARE NASH ====================
+    def _evaluate_nash(self, user_answer, correct_answer):
+        """Evaluare specializată pentru Nash Equilibrium"""
+        user_lower = user_answer.lower()
+        correct_lower = correct_answer.lower()
         
-        # Verificăm pentru fiecare algoritm dacă apare în răspunsul corect
+        score = 0
+        
+        # 1. Verifică dacă utilizatorul identifică corect existența/absența Nash
+        has_nash_correct = 'nu există' in correct_lower or 'nu exista' in correct_lower
+        user_says_no_nash = any(phrase in user_lower for phrase in [
+            'nu există', 'nu exista', 'fără', 'fara', 'niciun', 'no nash', 'no pure nash'
+        ])
+        user_says_yes_nash = any(phrase in user_lower for phrase in [
+            'există', 'exista', 'da', 'yes', 'există un', 'există echilibru'
+        ])
+        
+        # Verificare răspuns la existență
+        if has_nash_correct and user_says_no_nash:
+            score += 50  # Identificare corectă că NU există
+        elif not has_nash_correct and user_says_yes_nash:
+            score += 30  # Identificare corectă că există
+        elif not has_nash_correct and not user_says_no_nash:
+            score += 10  # Nu spune explicit "nu", dar nici nu neagă
+        
+        # 2. Dacă există Nash, verifică strategiile menționate
+        if 'da,' in correct_lower or 'da.' in correct_lower:
+            # Extragem perechile de strategii din răspunsul corect
+            correct_pairs = self._extract_strategy_pairs(correct_answer)
+            user_pairs = self._extract_strategy_pairs(user_answer)
+            
+            if len(correct_pairs) > 0:
+                # Calculăm câte perechi corecte a identificat
+                matching_pairs = 0
+                for cp in correct_pairs:
+                    for up in user_pairs:
+                        if self._pairs_match(cp, up):
+                            matching_pairs += 1
+                            break
+                
+                if matching_pairs == len(correct_pairs):
+                    score += 50  # Toate perechile corecte
+                elif matching_pairs > 0:
+                    score += int(50 * matching_pairs / len(correct_pairs))
+        
+        # 3. Verificăm termeni cheie Nash
+        nash_terms = ['nash', 'echilibru', 'strategie', 'plata', 'plată', 'jucator', 'jucător']
+        found_terms = sum(1 for term in nash_terms if term in user_lower)
+        score += min(20, found_terms * 5)
+        
+        score = min(100, score)
+        feedback = self._get_feedback(score)
+        
+        return {
+            'score': score,
+            'feedback': feedback
+        }
+    
+    def _extract_strategy_pairs(self, text):
+        """Extrage perechile de strategii din text, ex: (A1, B2)"""
+        # Pattern pentru perechi de forma (A1, B2) sau A1,B2 sau (A1,B2)
+        pattern = r'\(?\s*([A-Z]\d+)\s*,\s*([A-Z]\d+)\s*\)?'
+        matches = re.findall(pattern, text, re.IGNORECASE)
+        return [(m[0].upper(), m[1].upper()) for m in matches]
+    
+    def _pairs_match(self, pair1, pair2):
+        """Verifică dacă două perechi de strategii sunt identice"""
+        return pair1[0] == pair2[0] and pair1[1] == pair2[1]
+    
+    # ==================== METODE EXISTENTE (NESCHIMBATE) ====================
+    def _extract_required_terms(self, correct_answer):
+        """Extrage termenii obligatorii din răspunsul corect"""
+        required = []
         for algo_name, variants in self.main_algorithms.items():
             for variant in variants:
                 if variant in correct_answer:
-                    # Adăugăm forma de bază (prima variantă)
                     required.append(variants[0])
                     break
         
-        # Eliminăm duplicatele păstrând ordinea
         seen = set()
         unique_required = []
         for term in required:
@@ -155,9 +222,7 @@ class QuestionEvaluator:
         return unique_required
 
     def _has_positive_mention(self, text, keywords):
-        """
-        Verifică dacă vreunul din cuvintele cheie apare în text FĂRĂ să fie negat.
-        """
+        """Verifică dacă vreunul din cuvintele cheie apare în text FĂRĂ să fie negat"""
         for kw in keywords:
             pattern = r'\b' + re.escape(kw) + r'\b'
             matches = list(re.finditer(pattern, text))
@@ -167,27 +232,21 @@ class QuestionEvaluator:
                 
             for match in matches:
                 start, end = match.span()
-                
                 ctx_start = max(0, start - 25)
                 ctx_end = min(len(text), end + 25)
-                
                 context_before = text[ctx_start:start]
                 context_after = text[end:ctx_end]
                 
                 is_negated_before = any(re.search(r'\b' + n + r'\b', context_before) for n in self.negations)
-                
                 first_words_after = context_after.split()[:3]
                 is_negated_after = any(n in first_words_after for n in ['nu', 'not', 'isnt', "isn't"])
                 
                 if not is_negated_before and not is_negated_after:
                     return True
-                    
         return False
     
     def _is_equivalent_answer(self, user_answer, correct_answer):
-        """
-        Verifică dacă răspunsul utilizatorului este echivalent cu cel corect
-        """
+        """Verifică dacă răspunsul utilizatorului este echivalent cu cel corect"""
         if user_answer == correct_answer:
             return True
         
@@ -198,7 +257,6 @@ class QuestionEvaluator:
             if user_has and correct_has:
                 other_algos = [v for name, vs in self.main_algorithms.items() 
                             if name != algo_name for v in vs]
-                
                 has_contradiction = self._has_positive_mention(user_answer, other_algos)
                 
                 if not has_contradiction:
@@ -207,11 +265,7 @@ class QuestionEvaluator:
         return False
 
     def _check_main_algorithm(self, user_answer, correct_answer):
-        """
-        Verifică dacă algoritmul principal este menționat (și nu e negat).
-        Returnează scor bazat pe câți algoritmi corecți sunt menționați.
-        """
-        # Extragem toți algoritmii din răspunsul corect
+        """Verifică dacă algoritmul principal este menționat"""
         correct_algorithms = []
         for algo_name, variants in self.main_algorithms.items():
             if any(variant in correct_answer for variant in variants):
@@ -220,24 +274,20 @@ class QuestionEvaluator:
         if not correct_algorithms:
             return 0
         
-        # Verificăm câți algoritmi corecți sunt menționați de user
         matched_count = 0
         for algo_name in correct_algorithms:
             variants = self.main_algorithms[algo_name]
             if self._has_positive_mention(user_answer, variants):
                 matched_count += 1
         
-        # Calculăm scorul proporțional
         if len(correct_algorithms) == 0:
             return 0
         
-        # Dacă are toți algoritmii corecți -> 50 puncte
-        # Dacă are doar unul din mai mulți -> scor proporțional
         proportion = matched_count / len(correct_algorithms)
         return int(50 * proportion)
     
     def _check_keywords(self, user_answer, q_type):
-        """Verifică cuvintele cheie relevante (contextual)"""
+        """Verifică cuvintele cheie relevante"""
         q_keywords = self.keywords.get(q_type, [])
         found_groups = set()
         

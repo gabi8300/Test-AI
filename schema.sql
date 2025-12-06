@@ -44,4 +44,5 @@ INSERT INTO question_stats (question_type, total_generated) VALUES
     ('n-queens', 0),
     ('hanoi', 0),
     ('coloring', 0),
-    ('knight', 0);
+    ('knight', 0)
+    ('nash', 0);

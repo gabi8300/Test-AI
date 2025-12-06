@@ -1,13 +1,22 @@
 """
 Generator de întrebări - generează universul complet de întrebări posibile
+ACTUALIZAT cu suport pentru Nash Equilibrium
 """
 import random
+import json
+
+# Import pentru Nash
+import sys
+import os
+sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+from generators.nash_generator import NashGameGenerator
 
 class QuestionGenerator:
     """Clasă care generează toate combinațiile posibile de întrebări"""
     
     def __init__(self):
         self.question_counter = 0
+        self.nash_generator = NashGameGenerator()
 
     def get_all_questions(self):
         """Returnează lista completă a tuturor întrebărilor posibile"""
@@ -18,6 +27,7 @@ class QuestionGenerator:
         questions.extend(self._get_all_hanoi())
         questions.extend(self._get_all_coloring())
         questions.extend(self._get_all_knight())
+        questions.extend(self._get_all_nash())  # ADĂUGAT
         
         return questions
 
@@ -28,10 +38,15 @@ class QuestionGenerator:
             all_q = [q for q in all_q if q['type'] == q_type]
         return random.choice(all_q)
     
+    # ==================== NASH EQUILIBRIUM ====================
+    def _get_all_nash(self):
+        """Generează toate variantele Nash Equilibrium"""
+        return self.nash_generator.get_all_nash_questions()
+    
+    # ==================== RESTUL METODELOR (NESCHIMBATE) ====================
     def _get_all_nqueens(self):
         """Generează toate variantele N-Queens (n=4..15)"""
         qs = []
-        # N de la 4 la 15
         for n in range(4, 16):
             self.question_counter += 1
             qs.append({
@@ -91,7 +106,6 @@ Alternative: {"IDS pentru memorie limitată" if n_pegs == 3 else "IDS (Iterative
     def _get_all_coloring(self):
         """Generează toate variantele Graph Coloring"""
         qs = []
-        # Combinăm toți parametrii
         nodes_opts = [5, 6, 7, 8, 10]
         colors_opts = [3, 4, 5]
         density_opts = ['sparse', 'dense', 'moderate']
@@ -112,7 +126,6 @@ Alternative: {"IDS pentru memorie limitată" if n_pegs == 3 else "IDS (Iterative
                     qs.append({
                         'id': self.question_counter,
                         'type': 'coloring',
-                        # Actualizat titlul pentru unicitate
                         'title': f'Graph Coloring ({n_nodes} noduri, {density}, {n_colors} culori)',
                         'question': f'''Pentru problema Graph Coloring:
 
@@ -142,7 +155,6 @@ Alternative: {"DSatur, Backtracking la eșec" if is_easy else "MRV, Degree Heuri
         
         for board_size in sizes:
             for tour_type in types:
-                # Iterăm prin TOATE pozițiile posibile de start
                 for r in range(board_size):
                     for c in range(board_size):
                         self.question_counter += 1
@@ -151,7 +163,6 @@ Alternative: {"DSatur, Backtracking la eșec" if is_easy else "MRV, Degree Heuri
                         qs.append({
                             'id': self.question_counter,
                             'type': 'knight',
-                            # Actualizat titlul pentru unicitate
                             'title': f"Knight's Tour ({board_size}x{board_size}, {tour_type}, start {r},{c})",
                             'question': f'''Pentru problema Knight's Tour:
 
