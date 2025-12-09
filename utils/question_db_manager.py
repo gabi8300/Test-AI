@@ -48,14 +48,19 @@ class QuestionDBManager:
         """
         Salvează o nouă întrebare în baza de date.
         question_data trebuie să conțină: title, question, correct_answer, explanation, type
+        Pentru Nash: game_data, nash_equilibria (opțional)
         """
         with self.get_connection() as conn:
             with conn.cursor() as cursor:
+                # Pregătim valorile
+                game_data = question_data.get('game_data', None)
+                nash_equilibria = question_data.get('nash_equilibria', None)
+                
                 # 1. Inserare în tabela questions
                 query = """
                     INSERT INTO questions 
-                    (title, question, correct_answer, explanation, type, created_at)
-                    VALUES (%s, %s, %s, %s, %s, %s)
+                    (title, question, correct_answer, explanation, type, game_data, nash_equilibria, created_at)
+                    VALUES (%s, %s, %s, %s, %s, %s, %s, %s)
                     RETURNING id;
                 """
                 cursor.execute(query, (
@@ -64,21 +69,20 @@ class QuestionDBManager:
                     question_data['correct_answer'],
                     question_data['explanation'],
                     question_data['type'],
+                    game_data,
+                    nash_equilibria,
                     datetime.now()
                 ))
                 new_id = cursor.fetchone()[0]
 
                 # 2. Actualizare/Creare în tabela question_stats
-                # Verificăm dacă tipul există deja
                 cursor.execute("SELECT total_generated FROM question_stats WHERE question_type = %s;", (question_data['type'],))
                 if cursor.fetchone():
-                    # Dacă există, actualizăm
                     cursor.execute("""
                         UPDATE question_stats SET total_generated = total_generated + 1
                         WHERE question_type = %s;
                     """, (question_data['type'],))
                 else:
-                    # Dacă nu există, inserăm
                     cursor.execute("""
                         INSERT INTO question_stats (question_type, total_generated)
                         VALUES (%s, 1);
@@ -108,7 +112,7 @@ class QuestionDBManager:
             with conn.cursor(cursor_factory=RealDictCursor) as cursor:
                 if include_answer:
                     query = """
-                        SELECT id, title, question, correct_answer, explanation, type
+                        SELECT id, title, question, correct_answer, explanation, type, game_data, nash_equilibria
                         FROM questions 
                         WHERE id = %s;
                     """
@@ -214,7 +218,7 @@ class QuestionDBManager:
         with self.get_connection() as conn:
             with conn.cursor(cursor_factory=RealDictCursor) as cursor:
                 query = """
-                    SELECT id, title, question, correct_answer, explanation, type
+                    SELECT id, title, question, correct_answer, explanation, type, game_data, nash_equilibria
                     FROM questions 
                     WHERE id IN %s;
                 """

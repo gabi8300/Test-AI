@@ -93,18 +93,30 @@ def api_get_questions():
         return jsonify({'error': str(e)}), 500
 
 
+# app.py
+
 @app.route('/api/question/<int:q_id>', methods=['GET'])
 def api_get_question(q_id):
-    """Returnează o întrebare după ID, fără răspuns (doar pentru vizualizare)"""
+    """Returnează o întrebare după ID, FĂRĂ răspuns (doar pentru vizualizare SAU răspuns)"""
     try:
-        question = db_manager.get_question_by_id(q_id, include_answer=False)
+        # Preluăm toate datele (include_answer=True) pentru a obține game_data
+        question = db_manager.get_question_by_id(q_id, include_answer=True) 
+
         if question:
+            # Eliminăm câmpurile sensibile înainte de a trimite la client
+            if 'correct_answer' in question:
+                del question['correct_answer']
+            if 'explanation' in question:
+                del question['explanation']
+
             return jsonify(question)
         return jsonify({'error': 'Întrebarea nu a fost găsită'}), 404
     except Exception as e:
         app.logger.error(f"Eroare la obținerea întrebării: {e}")
         return jsonify({'error': str(e)}), 500
 
+
+# În app.py, înlocuiește ruta /api/evaluate cu aceasta:
 
 @app.route('/api/evaluate', methods=['POST'])
 def api_evaluate_answer():
@@ -125,7 +137,13 @@ def api_evaluate_answer():
         q_type = question_data['type']
 
         # Evaluează răspunsul folosind QuestionEvaluator
-        evaluation_result = evaluator.evaluate(user_answer, correct_answer, q_type)
+        # IMPORTANT: Trimitem question_data pentru Nash
+        evaluation_result = evaluator.evaluate(
+            user_answer, 
+            correct_answer, 
+            q_type,
+            question_data=question_data  # ← ADĂUGAT
+        )
 
         # Întoarce rezultatul - folosim explicația din baza de date
         return jsonify({
@@ -133,7 +151,7 @@ def api_evaluate_answer():
             'score': evaluation_result['score'],
             'feedback': evaluation_result['feedback'],
             'correctAnswer': correct_answer,
-            'explanation': explanation  # Explicația completă din DB
+            'explanation': explanation
         })
 
     except Exception as e:
@@ -231,10 +249,12 @@ def api_evaluate_test():
             question_data = questions_map.get(q_id)
 
             if question_data:
+                # IMPORTANT: Trimitem question_data pentru Nash
                 evaluation_result = evaluator.evaluate(
                     user_answer,
                     question_data['correct_answer'],
-                    question_data['type']
+                    question_data['type'],
+                    question_data=question_data  # ← ADĂUGAT
                 )
 
                 results.append({
@@ -244,7 +264,7 @@ def api_evaluate_test():
                     'question': question_data['question'],
                     'user_answer': user_answer,
                     'correct_answer': question_data['correct_answer'],
-                    'explanation': question_data['explanation'],  # Explicația completă din DB
+                    'explanation': question_data['explanation'],
                     'score': evaluation_result['score'],
                     'feedback': evaluation_result['feedback']
                 })

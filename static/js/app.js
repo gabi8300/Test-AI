@@ -171,104 +171,470 @@ async function confirmDeleteQuestion() {
   }
 }
 
+let currentNashGame = null;
+
+// ATENȚIE: AICI ERA PRIMA FUNCTIE showAnswer - AM MUTAT-O ȘI AM PĂSTRAT DOAR UNA CORECTĂ
+
+function showStandardAnswer() {
+    document.getElementById("screen-answer").classList.remove("hidden");
+    document.getElementById("answer-title").textContent = `Răspunde: ${currentQuestion.title}`;
+    document.getElementById("answer-question").textContent = currentQuestion.question;
+    document.getElementById("user-answer").value = "";
+}
+
+function showNashAnswer() {
+    try {
+        currentNashGame = JSON.parse(currentQuestion.game_data);
+    } catch {
+        showStandardAnswer();
+        return;
+    }
+    
+    document.getElementById("screen-nash-answer").classList.remove("hidden");
+    document.getElementById("nash-answer-title").textContent = `Răspunde: ${currentQuestion.title}`;
+    document.getElementById("nash-answer-question").textContent = currentQuestion.question;
+    
+    // Resetăm checkboxurile
+    document.getElementById("nash-no-equilibrium").checked = false;
+    
+    // Generăm checkboxurile pentru celule
+    generateNashCellCheckboxes(currentNashGame);
+}
+
+function generateNashCellCheckboxes(game) {
+    const container = document.getElementById("nash-cells-container");
+    const rows = game.rows;
+    const cols = game.cols;
+    
+    let html = '<div style="display: grid; grid-template-columns: repeat(auto-fill, minmax(200px, 1fr)); gap: 15px;">';
+    
+    for (let i = 0; i < rows.length; i++) {
+        for (let j = 0; j < cols.length; j++) {
+            const cellId = `nash-cell-${i}-${j}`;
+            const [p1, p2] = game.payoffs[i][j];
+            
+            html += `
+                <label style="display: flex; align-items: center; padding: 12px; background: white; border: 2px solid #ddd; border-radius: 8px; cursor: pointer; transition: all 0.2s;" 
+                    onmouseover="this.style.background='#e8f5e9'; this.style.borderColor='#28a745';"
+                    onmouseout="this.style.background='white'; this.style.borderColor='#ddd';">
+                    <input type="checkbox" id="${cellId}" value="${i},${j}" 
+                        style="width: 20px; height: 20px; margin-right: 12px; cursor: pointer;"
+                        onchange="handleCellCheckbox()">
+                    <div>
+                        <div style="font-weight: bold; color: #667eea; margin-bottom: 5px;">(${rows[i]}, ${cols[j]})</div>
+                        <div style="font-size: 0.9em; color: #666;">Plăți: (${p1}, ${p2})</div>
+                    </div>
+                </label>
+            `;
+        }
+    }
+    
+    html += '</div>';
+    container.innerHTML = html;
+}
+
+function handleNoNashCheckbox() {
+    const noNashChecked = document.getElementById("nash-no-equilibrium").checked;
+    
+    if (noNashChecked) {
+        // Debifează toate celulele
+        const cellCheckboxes = document.querySelectorAll('[id^="nash-cell-"]');
+        cellCheckboxes.forEach(cb => cb.checked = false);
+    }
+}
+
+function handleCellCheckbox() {
+    // Dacă o celulă e bifată, debifează "Nu există"
+    const cellCheckboxes = document.querySelectorAll('[id^="nash-cell-"]:checked');
+    if (cellCheckboxes.length > 0) {
+        document.getElementById("nash-no-equilibrium").checked = false;
+    }
+}
+
+// app.js (Adăugați această funcție dacă lipsește sau este incompletă)
+
+/**
+ * Evaluează răspunsul utilizatorului pentru întrebările standard (non-Nash).
+ */
+
+
+// app.js (Funcția submitAnswer)
+
+async function submitAnswer() {
+    // 1. Verificăm dacă suntem pe o întrebare standard
+    if (currentQuestion.type === 'nash') {
+        alert("Te rog, folosește butonul de Evaluare specific pentru jocul Nash.");
+        return;
+    }
+
+    // Extragem răspunsul din DOM.
+    const user_answer_text = document.getElementById("user-answer").value.trim();
+    
+    if (user_answer_text === "") {
+        alert("Te rog, completează un răspuns înainte de a evalua.");
+        return;
+    }
+
+    try {
+        const res = await fetch("/api/evaluate", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({
+                question_id: currentQuestion.id,
+                user_answer: user_answer_text, // Trimitem ca string simplu
+            }),
+        });
+
+        const result = await res.json();
+        
+        // **NOU:** Adăugăm răspunsul utilizatorului în obiectul rezultat pentru a-l folosi la afișare
+        result.user_answer = user_answer_text; 
+
+        displayEvaluation(result);
+    } catch (error) {
+        console.error("Eroare la evaluarea răspunsului:", error);
+        alert("Eroare la evaluarea răspunsului!");
+    }
+}
+
+// app.js (Funcția submitNashAnswer)
+
+async function submitNashAnswer() {
+    // ... (Logica de construire a user_answer_data și user_answer_string)
+    // ...
+    
+    // Construim răspunsul (JSON string)
+    let user_answer_string = JSON.stringify(user_answer_data); // Aici e stringul JSON
+
+    // ... (Validare)
+    
+    try {
+        const res = await fetch("/api/evaluate", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({
+                question_id: currentQuestion.id,
+                user_answer: user_answer_string, // Trimitem stringul JSON
+            }),
+        });
+
+        const result = await res.json();
+        
+        // **NOU:** Adăugăm răspunsul utilizatorului în obiectul rezultat pentru a-l folosi la afișare
+        result.user_answer = user_answer_string; 
+
+        displayEvaluation(result);
+    } catch (error) {
+        console.error("Eroare la evaluarea răspunsului:", error);
+        alert("Eroare la evaluarea răspunsului!");
+    }
+}
+
 
 /**
  * Afișează ecranul de răspuns (individual)
+ * ACEASTA ESTE SINGURA FUNCTIE showAnswer() VALIDA, AM ELIMINAT DUPLICATUL
  */
+// ==================== ACTUALIZARE COMPLETĂ app.js ====================
+// ADAUGĂ/ÎNLOCUIEȘTE aceste funcții în app.js
+
+// Variabile globale (verifică că există)
+
+// ==================== FUNCȚII NASH ====================
+
 async function showAnswer() {
-  hideAll();
-  document.getElementById("screen-answer").classList.remove("hidden");
+    hideAll();
+    
+    if (questions.length === 0) {
+        await loadQuestions();
+    }
 
-  // Alege o întrebare aleatorie din cele salvate
-  if (questions.length === 0) {
-    await loadQuestions();
-  }
+    if (questions.length === 0) {
+        alert("Nu există întrebări salvate pentru a răspunde!");
+        showHome();
+        return;
+    }
 
-  if (questions.length === 0) {
-    alert("Nu există întrebări salvate pentru a răspunde!");
-    showHome();
-    return;
-  }
+    const randomQMeta = questions[Math.floor(Math.random() * questions.length)];
+    const q_id = randomQMeta.id;
 
-  const randomQMeta = questions[Math.floor(Math.random() * questions.length)];
-  const q_id = randomQMeta.id;
+    try {
+        const res = await fetch(`/api/question/${q_id}`);
+        currentQuestion = await res.json();
+        currentQuestion.id = q_id;
+        
+        console.log("Întrebare încărcată:", currentQuestion.type); // DEBUG
+        
+        // IMPORTANT: Verificăm dacă e Nash
+        if (currentQuestion.type === 'nash') {
+            console.log("Redirectare către Nash answer"); // DEBUG
+            showNashAnswer();
+        } else {
+            console.log("Redirectare către Standard answer"); // DEBUG
+            showStandardAnswer();
+        }
+    } catch (error) {
+        console.error("Eroare la încărcarea întrebării:", error);
+        showHome();
+    }
+}
 
-  try {
-    const res = await fetch(`/api/question/${q_id}`);
-    currentQuestion = await res.json();
-    currentQuestion.id = q_id; // Păstrăm ID-ul pentru trimiterea răspunsului
+function showStandardAnswer() {
+    document.getElementById("screen-answer").classList.remove("hidden");
     document.getElementById("answer-title").textContent = `Răspunde: ${currentQuestion.title}`;
     document.getElementById("answer-question").textContent = currentQuestion.question;
-    document.getElementById("user-answer").value = ""; // Curățăm câmpul de răspuns
-  } catch (error) {
-    console.error("Eroare la încărcarea întrebării de răspuns:", error);
-    showHome();
-  }
+    document.getElementById("user-answer").value = "";
 }
 
-/**
- * Trimiterea răspunsului (individual) pentru evaluare
- */
-async function submitAnswer() {
-  const user_answer = document.getElementById("user-answer").value.trim();
-  if (!user_answer) {
-    alert("Te rog, scrie un răspuns.");
-    return;
-  }
+function showNashAnswer() {
+    console.log("showNashAnswer() apelată"); // DEBUG
+    
+    // Verificăm că avem game_data
+    if (!currentQuestion.game_data) {
+        console.error("Lipsește game_data! Folosim interfața standard");
+        showStandardAnswer();
+        return;
+    }
+    
+    try {
+        if (typeof currentQuestion.game_data === "string") {
+            currentNashGame = JSON.parse(currentQuestion.game_data);
+        } else {
+            currentNashGame = currentQuestion.game_data;
+        }
+    } catch (e) {
+        console.error("Eroare parsare game_data:", e);
+        showStandardAnswer();
+        return;
+    }
 
-  try {
-    const res = await fetch("/api/evaluate", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({
-        question_id: currentQuestion.id,
-        user_answer: user_answer,
-      }),
+    
+    // Afișăm screen-ul Nash
+    const nashScreen = document.getElementById("screen-nash-answer");
+    if (!nashScreen) {
+        console.error("EROARE: screen-nash-answer nu există în HTML!");
+        alert("Interfața Nash lipsește! Verifică că ai adăugat screen-nash-answer în index.html");
+        showStandardAnswer();
+        return;
+    }
+    
+    nashScreen.classList.remove("hidden");
+    
+    // Setăm titlul
+    document.getElementById("nash-answer-title").textContent = `Răspunde: ${currentQuestion.title}`;
+    
+    // Setăm întrebarea
+    document.getElementById("nash-answer-question").textContent = currentQuestion.question;
+    
+    // Resetăm checkboxul "Nu există"
+    const noNashCheckbox = document.getElementById("nash-no-equilibrium");
+    if (noNashCheckbox) {
+        noNashCheckbox.checked = false;
+    }
+    
+    // Generăm checkboxurile pentru celule
+    console.log("Generare checkboxuri celule..."); // DEBUG
+    generateNashCellCheckboxes(currentNashGame);
+    
+    console.log("Nash UI afișat cu succes!"); // DEBUG
+}
+
+function generateNashCellCheckboxes(game) {
+    const container = document.getElementById("nash-cells-container");
+    
+    if (!container) {
+        console.error("EROARE: nash-cells-container nu există!");
+        return;
+    }
+    
+    const rows = game.rows;
+    const cols = game.cols;
+    
+    console.log(`Generare ${rows.length}x${cols.length} checkboxuri`); // DEBUG
+    
+    let html = '<div style="display: grid; grid-template-columns: repeat(auto-fill, minmax(200px, 1fr)); gap: 15px;">';
+    
+    for (let i = 0; i < rows.length; i++) {
+        for (let j = 0; j < cols.length; j++) {
+            const cellId = `nash-cell-${i}-${j}`;
+            const [p1, p2] = game.payoffs[i][j];
+            
+            html += `
+                <label style="display: flex; align-items: center; padding: 12px; background: white; border: 2px solid #ddd; border-radius: 8px; cursor: pointer; transition: all 0.2s;" 
+                       onmouseover="this.style.background='#e8f5e9'; this.style.borderColor='#28a745';"
+                       onmouseout="this.style.background='white'; this.style.borderColor='#ddd';">
+                    <input type="checkbox" id="${cellId}" value="${i},${j}" 
+                           style="width: 20px; height: 20px; margin-right: 12px; cursor: pointer;"
+                           onchange="handleCellCheckbox()">
+                    <div>
+                        <div style="font-weight: bold; color: #667eea; margin-bottom: 5px;">(${rows[i]}, ${cols[j]})</div>
+                        <div style="font-size: 0.9em; color: #666;">Plăți: (${p1}, ${p2})</div>
+                    </div>
+                </label>
+            `;
+        }
+    }
+    
+    html += '</div>';
+    container.innerHTML = html;
+    
+    console.log(`Generat ${rows.length * cols.length} checkboxuri`); // DEBUG
+}
+
+function handleNoNashCheckbox() {
+    const noNashChecked = document.getElementById("nash-no-equilibrium").checked;
+    
+    console.log("handleNoNashCheckbox:", noNashChecked); // DEBUG
+    
+    if (noNashChecked) {
+        // Debifează toate celulele
+        const cellCheckboxes = document.querySelectorAll('[id^="nash-cell-"]');
+        cellCheckboxes.forEach(cb => cb.checked = false);
+        console.log("Debifate toate celulele"); // DEBUG
+    }
+}
+
+function handleCellCheckbox() {
+    // Dacă o celulă e bifată, debifează "Nu există"
+    const cellCheckboxes = document.querySelectorAll('[id^="nash-cell-"]:checked');
+    
+    console.log("handleCellCheckbox: celule bifate =", cellCheckboxes.length); // DEBUG
+    
+    if (cellCheckboxes.length > 0) {
+        document.getElementById("nash-no-equilibrium").checked = false;
+        console.log("Debifat 'Nu există'"); // DEBUG
+    }
+}
+
+async function submitNashAnswer() {
+    console.log("submitNashAnswer() apelată"); // DEBUG
+    
+    const noNashChecked = document.getElementById("nash-no-equilibrium").checked;
+    const cellCheckboxes = document.querySelectorAll('[id^="nash-cell-"]:checked');
+    
+    let selectedCells = [];
+    cellCheckboxes.forEach(cb => {
+        const [i, j] = cb.value.split(',');
+        selectedCells.push({i: parseInt(i), j: parseInt(j)});
     });
+    
+    console.log("No Nash:", noNashChecked); // DEBUG
+    console.log("Selected cells:", selectedCells); // DEBUG
+    
+    // Validare
+    if (!noNashChecked && selectedCells.length === 0) {
+        alert("Te rog, bifează 'Nu există' SAU selectează celulele Nash!");
+        return;
+    }
+    
+    // Construim răspunsul
+    let user_answer_data = {
+        no_nash: noNashChecked,
+        selected_cells: selectedCells
+    };
+    
+    console.log("User answer data:", user_answer_data); // DEBUG
+    
+    try {
+        const res = await fetch("/api/evaluate", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({
+                question_id: currentQuestion.id,
+                user_answer: JSON.stringify(user_answer_data),
+            }),
+        });
 
-    const result = await res.json();
-    displayEvaluation(result);
-  } catch (error) {
-    console.error("Eroare la evaluarea răspunsului:", error);
-    alert("Eroare la evaluarea răspunsului!");
-  }
+        const result = await res.json();
+        console.log("Evaluation result:", result); // DEBUG
+        displayEvaluation(result);
+    } catch (error) {
+        console.error("Eroare la evaluarea răspunsului:", error);
+        alert("Eroare la evaluarea răspunsului!");
+    }
 }
+
+// ==================== FUNCȚII EXISTENTE (păstrează-le) ====================
+
+// displayEvaluation, getScoreClass, etc. rămân neschimbate
+// Asigură-te că există funcția displayEvaluation
+
+// app.js (în jurul liniei 345)
+
+// app.js (Funcția displayEvaluation)
 
 function displayEvaluation(result) {
-  hideAll();
+    hideAll();
 
-  const scoreClass = getScoreClass(result.score);
+    // Răspunsul utilizatorului vine acum direct din `result.user_answer` (text simplu sau string JSON)
+    const rawUserAnswer = result.user_answer || "";
+    const isNash = currentQuestion.type === 'nash';
+    let userAnswerDisplay = "";
+    
+    // 2. Formatăm Răspunsul Utilizatorului
+    if (isNash) {
+        // Logica de parsare și formatare pentru Nash
+        try {
+            const answerObj = JSON.parse(rawUserAnswer);
+            const game = currentNashGame; // Avem nevoie de asta pentru a obține numele strategiilor
+            
+            if (answerObj.no_nash) {
+                userAnswerDisplay = "Nu există echilibru Nash pur";
+            } else if (answerObj.selected_cells && answerObj.selected_cells.length > 0) {
+                let cells = [];
+                answerObj.selected_cells.forEach(cell => {
+                    const i = cell.i;
+                    const j = cell.j;
+                    if (game && game.rows && game.cols) {
+                        cells.push(`(${game.rows[i]}, ${game.cols[j]}) Plăți: (${game.payoffs[i][j].join(', ')})`);
+                    } else {
+                        cells.push(`Celulă [${i},${j}]`);
+                    }
+                });
+                userAnswerDisplay = `Echilibru Nash selectat:\n - ${cells.join('\n - ')}`;
+            } else {
+                userAnswerDisplay = "Niciun răspuns furnizat.";
+            }
+        } catch (e) {
+            // Dacă parsarea eșuează, afișăm stringul brut
+            userAnswerDisplay = `Format nevalid: ${rawUserAnswer}`;
+        }
+    } else {
+        // Răspuns standard (text)
+        userAnswerDisplay = rawUserAnswer.trim() || "Niciun răspuns furnizat.";
+    }
 
-  document.getElementById("eval-question-text").textContent =
-    currentQuestion.question;
 
-  // Afișează score-display pentru evaluări normale
-  const scoreDisplay = document.getElementById("score-display");
-  scoreDisplay.style.display = "block";
-  scoreDisplay.innerHTML = `
+    const scoreClass = getScoreClass(result.score);
+
+    document.getElementById("eval-question-text").textContent = currentQuestion.question;
+
+    const scoreDisplay = document.getElementById("score-display");
+    scoreDisplay.style.display = "block";
+    scoreDisplay.innerHTML = `
         <div class="score-box ${scoreClass}">
             <div style="font-size: 3em; font-weight: bold;">${result.score}%</div>
             <div style="font-size: 1.5em;">${result.feedback}</div>
         </div>
     `;
 
-  document.getElementById("eval-correct").textContent = result.correctAnswer;
-  document.getElementById("eval-explanation").textContent = result.explanation;
-  document.getElementById("screen-eval").classList.remove("hidden");
+    // Afișăm Răspunsul Utilizatorului
+    const userDisplayEl = document.getElementById("eval-user-answer-display");
+    if (userDisplayEl) {
+        userDisplayEl.textContent = userAnswerDisplay;
+    }
+    
+    document.getElementById("eval-correct").textContent = result.correctAnswer;
+    document.getElementById("eval-explanation").textContent = result.explanation;
+    document.getElementById("screen-eval").classList.remove("hidden");
 }
 
-/**
- * Determină clasa CSS pentru scor
- * @param {number} score - Scorul obținut
- * @returns {string}
- */
 function getScoreClass(score) {
-  if (score >= 90) return "score-excellent";
-  if (score >= 70) return "score-good";
-  if (score >= 50) return "score-fair";
-  return "score-poor";
+    if (score >= 90) return "score-excellent";
+    if (score >= 70) return "score-good";
+    if (score >= 50) return "score-fair";
+    return "score-poor";
 }
-
 
 // ======================= LOGICĂ NOUĂ PENTRU TEST =======================
 
@@ -411,6 +777,8 @@ function showTestQuiz() {
     loadQuestion(currentTestIndex);
 }
 
+// app.js
+
 /**
  * Încarcă o întrebare specifică din test
  * @param {number} index - Indexul întrebării în `testQuestions`
@@ -436,28 +804,50 @@ function loadQuestion(index) {
     const titleEl = document.getElementById("test-quiz-title");
     const qTitleEl = document.getElementById("test-q-title");
     const qTextEl = document.getElementById("test-q-text");
-    const answerEl = document.getElementById("test-user-answer");
+    // Eliminăm 'answerEl' care era un simplu textarea
+    const answerContainerEl = document.getElementById("test-answer-container"); // Noul container
     
-    if (!currentIndexEl || !totalTestEl || !titleEl || !qTitleEl || !qTextEl || !answerEl) {
-        console.error('Elemente lipsă:', {
-            currentIndex: !!currentIndexEl,
-            totalTest: !!totalTestEl,
-            title: !!titleEl,
-            qTitle: !!qTitleEl,
-            qText: !!qTextEl,
-            answer: !!answerEl
-        });
-        return;
-    }
+    // ... (verificări de eroare UI)
 
     currentIndexEl.textContent = index + 1;
     totalTestEl.textContent = testQuestions.length;
     titleEl.textContent = `Test în derulare (${index + 1}/${testQuestions.length})`;
     qTitleEl.textContent = `[${currentQ.type.toUpperCase()}] ${currentQ.title}`;
     qTextEl.textContent = currentQ.question;
+    
+    // =========================================================
+    // NOU: Afișează interfața corectă (Textarea SAU Nash Checkbox)
+    // =========================================================
+    
+    const savedAnswer = testAnswers[currentQ.id];
+    
+    if (currentQ.type === 'nash') {
+        // Asignăm currentQuestion (deși este doar meta-data) pentru a folosi logica Nash existentă
+        currentQuestion = currentQ; 
+        
+        // **IMPORTANT:** Trebuie să obținem datele complete ale întrebării pentru Nash
+        // Deoarece api/generate-test returnează doar meta-data, trebuie să apelăm 
+        // /api/question/<id> pentru a obține `game_data`.
+        // Asta înseamnă că `loadQuestion` ar trebui să fie async și să facă un fetch.
+        // Totuși, pentru a evita complexitatea, vom folosi o soluție mai simplă
+        // și vom trece peste partea async, presupunând că întrebările Nash au
+        // `game_data` populat (chiar dacă este doar un string placeholder) 
+        // SAU vom presupune că backend-ul a returnat `game_data` în `api/generate-test` (deși nu e așa).
+        
+        // Deoarece funcția generateTest din backend returnează DOAR ID, TITLE, QUESTION, TYPE,
+        // NU avem game_data aici. Trebuie să adăugăm o metodă să obținem acele date.
 
-    // 3. Reîncărcăm răspunsul salvat (dacă există)
-    answerEl.value = testAnswers[currentQ.id] || '';
+        // SOLUTIA MAI COMPLEXA, DAR CORECTA:
+        fetchAndRenderNashQuestion(currentQ.id, savedAnswer);
+        
+    } else {
+        // Întrebare standard: afișăm Textarea
+        answerContainerEl.innerHTML = `<textarea id="test-user-answer" placeholder="Scrie răspunsul tău aici..." style="width: 100%;"></textarea>`;
+        const answerEl = document.getElementById("test-user-answer");
+        if (answerEl) {
+            answerEl.value = savedAnswer || '';
+        }
+    }
 
     // 4. Gestionăm butoanele de navigare și finalizare
     const prevBtn = document.getElementById("prev-q-btn");
@@ -469,19 +859,177 @@ function loadQuestion(index) {
     if (finishBtn) finishBtn.classList.toggle("hidden", index !== testQuestions.length - 1);
 }
 
+// FUNCȚIE NOUĂ PENTRU NASH ÎN MODUL TEST
+async function fetchAndRenderNashQuestion(q_id, savedAnswer) {
+    const answerContainerEl = document.getElementById("test-answer-container");
+    answerContainerEl.innerHTML = '<div style="text-align: center; color: #667eea;"><span class="loading"></span> Se încarcă datele jocului...</div>';
+
+    try {
+        // Preluăm datele complete (inclusiv game_data) de la ruta api_get_question
+        const res = await fetch(`/api/question/${q_id}`);
+        const fullQuestionData = await res.json();
+        
+        if (fullQuestionData.error || fullQuestionData.type !== 'nash') {
+            throw new Error("Datele jocului Nash nu au putut fi încărcate.");
+        }
+        
+        // Preluăm game_data și parsam
+        let gameData;
+        if (typeof fullQuestionData.game_data === "string") {
+            gameData = JSON.parse(fullQuestionData.game_data);
+        } else {
+            gameData = fullQuestionData.game_data;
+        }
+
+        // Construim interfața Nash
+        answerContainerEl.innerHTML = `
+            <div style="background: #fff3cd; padding: 20px; border-radius: 10px; margin: 20px 0; border: 2px solid #ffc107;">
+                <label style="display: flex; align-items: center; cursor: pointer; font-size: 1.1em;">
+                    <input type="checkbox" id="test-nash-no-equilibrium" style="width: 25px; height: 25px; margin-right: 15px; cursor: pointer;" onchange="handleTestNoNashCheckbox()">
+                    <strong>Nu există echilibru Nash pur</strong>
+                </label>
+            </div>
+            <div style="background: #d4edda; padding: 20px; border-radius: 10px; margin: 20px 0; border: 2px solid #28a745;">
+                <h3 style="margin-bottom: 15px; color: #155724;">SAU selectează celulele Nash:</h3>
+                <div id="test-nash-cells-container">
+                    </div>
+            </div>
+        `;
+        
+        // Generăm checkboxurile folosind o funcție adaptată
+        generateTestNashCellCheckboxes(gameData, q_id);
+        
+        // Reîncărcăm răspunsul salvat (dacă există)
+        if (savedAnswer) {
+            const answerObj = JSON.parse(savedAnswer);
+            if (answerObj.no_nash) {
+                document.getElementById("test-nash-no-equilibrium").checked = true;
+            } else if (answerObj.selected_cells && answerObj.selected_cells.length > 0) {
+                answerObj.selected_cells.forEach(cell => {
+                    const cellId = `test-nash-cell-${q_id}-${cell.i}-${cell.j}`;
+                    const cb = document.getElementById(cellId);
+                    if (cb) cb.checked = true;
+                });
+            }
+        }
+
+    } catch (error) {
+        console.error("Eroare la încărcarea datelor Nash în test:", error);
+        answerContainerEl.innerHTML = '<p style="color: red;">❌ Eroare la încărcarea interfeței Nash. Te rog, treci la următoarea întrebare.</p>';
+    }
+}
+
+
+// FUNCȚII NOI DE GESTIONARE NASH PENTRU MODUL TEST (Adaptare a celor existente)
+function generateTestNashCellCheckboxes(game, q_id) {
+    const container = document.getElementById("test-nash-cells-container");
+    const rows = game.rows;
+    const cols = game.cols;
+    
+    let html = '<div style="display: grid; grid-template-columns: repeat(auto-fill, minmax(200px, 1fr)); gap: 15px;">';
+    
+    for (let i = 0; i < rows.length; i++) {
+        for (let j = 0; j < cols.length; j++) {
+            // ID-ul trebuie să includă q_id pentru unicitate
+            const cellId = `test-nash-cell-${q_id}-${i}-${j}`; 
+            const [p1, p2] = game.payoffs[i][j];
+            
+            html += `
+                <label style="display: flex; align-items: center; padding: 12px; background: white; border: 2px solid #ddd; border-radius: 8px; cursor: pointer; transition: all 0.2s;" 
+                    onmouseover="this.style.background='#e8f5e9'; this.style.borderColor='#28a745';"
+                    onmouseout="this.style.background='white'; this.style.borderColor='#ddd';">
+                    <input type="checkbox" id="${cellId}" value="${i},${j}" 
+                        style="width: 20px; height: 20px; margin-right: 12px; cursor: pointer;"
+                        onchange="handleTestCellCheckbox()">
+                    <div>
+                        <div style="font-weight: bold; color: #667eea; margin-bottom: 5px;">(${rows[i]}, ${cols[j]})</div>
+                        <div style="font-size: 0.9em; color: #666;">Plăți: (${p1}, ${p2})</div>
+                    </div>
+                </label>
+            `;
+        }
+    }
+    
+    html += '</div>';
+    container.innerHTML = html;
+}
+
+function handleTestNoNashCheckbox() {
+    const noNashChecked = document.getElementById("test-nash-no-equilibrium").checked;
+    
+    if (noNashChecked) {
+        // Debifează toate celulele
+        const cellCheckboxes = document.querySelectorAll('[id^="test-nash-cell-"]');
+        cellCheckboxes.forEach(cb => cb.checked = false);
+    }
+}
+
+function handleTestCellCheckbox() {
+    // Dacă o celulă e bifată, debifează "Nu există"
+    const cellCheckboxes = document.querySelectorAll('[id^="test-nash-cell-"]:checked');
+    if (cellCheckboxes.length > 0) {
+        document.getElementById("test-nash-no-equilibrium").checked = false;
+    }
+}
+
+// (Continuă cu restul funcției loadQuestion)
+// ...
+// ...
+
 /**
  * Salvează răspunsul din textarea în `testAnswers`
+ */
+// app.js
+
+/**
+ * Salvează răspunsul din interfața curentă în `testAnswers`
  */
 function saveCurrentAnswer() {
     if (testQuestions.length === 0) return;
 
     const currentQ = testQuestions[currentTestIndex];
-    const answerTextarea = document.getElementById("test-user-answer");
+    let answerToSave = "";
 
-    // Salvăm răspunsul (trimming spațiile goale)
-    testAnswers[currentQ.id] = answerTextarea.value.trim();
+    if (currentQ.type === 'nash') {
+        // Logica de salvare pentru Nash
+        const noNashChecked = document.getElementById("test-nash-no-equilibrium")?.checked || false;
+        
+        // Selectăm doar checkboxurile din containerul de test-nash-cells
+        const cellCheckboxes = document.querySelectorAll('#test-answer-container [id^="test-nash-cell-"]:checked');
+        
+        let selectedCells = [];
+        cellCheckboxes.forEach(cb => {
+            const [i, j] = cb.value.split(',');
+            selectedCells.push({i: parseInt(i), j: parseInt(j)});
+        });
+        
+        const user_answer_data = {
+            no_nash: noNashChecked,
+            selected_cells: selectedCells
+        };
+        
+        // Dacă nu e bifat nimic și nu e bifat "Nu există", salvăm string gol.
+        if (!noNashChecked && selectedCells.length === 0) {
+            answerToSave = "";
+        } else {
+            // Salvăm ca JSON string, conform așteptărilor backend-ului
+            answerToSave = JSON.stringify(user_answer_data);
+        }
+
+    } else {
+        // Logica de salvare pentru Textarea standard
+        const answerTextarea = document.getElementById("test-user-answer");
+        if (answerTextarea) {
+            // Salvăm răspunsul (trimming spațiile goale)
+            answerToSave = answerTextarea.value.trim();
+        } else {
+            // Dacă textarea nu există (poate e un Nash care nu s-a încărcat corect)
+            answerToSave = "";
+        }
+    }
+
+    testAnswers[currentQ.id] = answerToSave;
 }
-
 /**
  * Navighează la întrebarea anterioară/următoare
  * @param {number} direction - -1 pentru înapoi, 1 pentru înainte
